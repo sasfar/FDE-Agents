@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FDE-Agents · End-to-End Test Bed Architecture</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a2e; --panel2:#18223b; --line:#26324f; --ink:#e6ecff; --ink2:#a9b5d6; --muted:#6f7ca3;
+    --ok:#38bdf8; --token:#fbbf24; --deny:#f87171; --warn:#fb923c; --reply:#34d399; --consent:#a78bfa; --info:#94a3b8;
+    --agent:#38bdf8; --gw:#a78bfa; --sec:#f472b6; --id:#fbbf24; --ext:#94a3b8; --svc:#34d399; --eval:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  header{padding:18px 24px 10px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 28px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px}
+  header .meta{color:var(--ink2);font-size:12.5px}
+  header .meta b{color:var(--ink)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--panel)}
+  main{display:grid;grid-template-columns:250px minmax(0,1fr) 340px;gap:14px;padding:14px}
+  @media (max-width:1300px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .side{padding:12px;display:flex;flex-direction:column;gap:8px}
+  .side h3,.narr h3{margin:2px 0 6px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+  .scn{all:unset;cursor:pointer;display:block;padding:8px 10px;border-radius:8px;border:1px solid transparent;color:var(--ink2);font-size:13px}
+  .scn:hover{background:var(--panel2);color:var(--ink)}
+  .scn.active{background:var(--panel2);border-color:var(--ok);color:var(--ink)}
+  .scn small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+  .controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .btn{all:unset;cursor:pointer;padding:6px 10px;border-radius:7px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;color:var(--ink)}
+  .btn:hover{border-color:var(--ok)}
+  .btn.primary{background:#0e3a55;border-color:#1f6f99}
+  label.speed{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:6px;width:100%;margin-top:4px}
+  label.speed input{flex:1}
+  .stage{position:relative;padding:6px;overflow:hidden}
+  svg#arch{width:100%;height:auto;display:block}
+  .narr{padding:12px;display:flex;flex-direction:column;max-height:calc(100vh - 120px);min-height:520px}
+  .narr .title{font-size:15px;font-weight:600;margin-bottom:2px}
+  .narr .desc{color:var(--ink2);font-size:12.5px;margin-bottom:10px}
+  .now{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;padding:10px 12px;margin-bottom:10px;min-height:86px}
+  .now .lbl{font-weight:600;margin-bottom:3px;display:flex;gap:8px;align-items:center}
+  .now .txt{color:var(--ink2);font-size:12.5px}
+  ol.steps{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+  ol.steps li{display:flex;gap:8px;padding:6px 6px;border-radius:6px;font-size:12px;color:var(--muted);cursor:pointer}
+  ol.steps li:hover{background:var(--panel2)}
+  ol.steps li.done{color:var(--ink2)}
+  ol.steps li.cur{color:var(--ink);background:var(--panel2)}
+  ol.steps li .n{flex:0 0 20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;border:1px solid var(--line)}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;text-transform:uppercase;border:1px solid currentColor}
+  .k-ok{color:var(--ok)} .k-token{color:var(--token)} .k-deny,.k-block{color:var(--deny)} .k-warn{color:var(--warn)} .k-reply{color:var(--reply)} .k-consent{color:var(--consent)} .k-info{color:var(--info)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--ink2);padding:6px 10px 2px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  /* SVG */
+  .zone rect{fill:none;stroke:var(--line);stroke-width:1.5}
+  .zone.gcp rect{stroke:#2f5a8a;fill:rgba(56,189,248,.025)}
+  .zone.outside rect{stroke:#4b4f63;stroke-dasharray:6 5;fill:rgba(148,163,184,.025)}
+  .zone.sub rect{stroke:#2a3654;fill:rgba(255,255,255,.012)}
+  .zone.vpc rect{stroke:#3b6b52;fill:rgba(52,211,153,.03)}
+  .zone text{fill:var(--muted);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;font-weight:600}
+  .zone.gcp>text{fill:#7fb2e6;font-size:12.5px}
+  .node{cursor:pointer}
+  .node rect.box{fill:var(--panel2);stroke:#33415f;stroke-width:1.3;transition:stroke .25s, fill .25s}
+  .node rect.stripe{opacity:.95}
+  .node text.t{fill:var(--ink);font-size:13px;font-weight:650}
+  .node text.s{fill:var(--ink2);font-size:10.5px}
+  .node text.tag{fill:var(--muted);font-size:8.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+  .node:hover rect.box{stroke:#7a8bb8}
+  .node.dim{opacity:.45}
+  .node.dashed rect.box{stroke-dasharray:5 4}
+  .node.active rect.box{stroke:var(--ok);stroke-width:2.2;fill:#16304a}
+  .node.hit-deny rect.box{stroke:var(--deny);stroke-width:2.6;fill:#3a1820}
+  .node.hit-warn rect.box{stroke:var(--warn);stroke-width:2.6;fill:#3a2616}
+  .node.hit-token rect.box{stroke:var(--token);stroke-width:2.4;fill:#3a3016}
+  .node.hit-reply rect.box{stroke:var(--reply);stroke-width:2.4;fill:#123326}
+  .node.hit-consent rect.box{stroke:var(--consent);stroke-width:2.4;fill:#261d40}
+  .node.focus rect.box{animation:focuspulse 1.1s ease-in-out infinite}
+  @keyframes focuspulse{0%,100%{stroke-width:2;filter:none}50%{stroke-width:3.4;filter:drop-shadow(0 0 8px rgba(251,146,60,.7))}}
+  .static{fill:none;stroke:#2b3858;stroke-width:1.4;stroke-dasharray:3 6;animation:dash 2.4s linear infinite}
+  .static.bad{stroke:#5a2a33}
+  .static.weak{opacity:.5}
+  @keyframes dash{to{stroke-dashoffset:-18}}
+  .flow{fill:none;stroke-width:2.6;stroke-linecap:round}
+  .trail{opacity:.32;transition:opacity .6s}
+  .pkt{filter:url(#glow)}
+  .pill rect{rx:6;ry:6;fill:#0b1020;stroke-width:1.3}
+  .pill text{font-size:11.5px;font-weight:650}
+  .burst{fill:none;stroke:var(--deny);stroke-width:3}
+  .gapflag{fill:var(--warn);font-size:11px;font-weight:700}
+
+  /* drawer */
+  #drawer{position:absolute;right:14px;top:14px;width:320px;max-width:calc(100% - 28px);background:#0f172a;border:1px solid #3a4a72;border-radius:10px;padding:12px 14px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;z-index:5}
+  #drawer h4{margin:0 0 2px;font-size:15px}
+  #drawer .sub{color:var(--ink2);font-size:12px;margin-bottom:8px}
+  #drawer dl{margin:0;display:grid;grid-template-columns:86px 1fr;gap:4px 8px;font-size:12px}
+  #drawer dt{color:var(--muted)} #drawer dd{margin:0;color:var(--ink);word-break:break-word}
+  #drawer .x{position:absolute;right:10px;top:8px;cursor:pointer;color:var(--muted);font-size:16px}
+
+  /* reference sections */
+  section.ref{margin:0 14px 24px;padding:14px 16px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+  .tab{all:unset;cursor:pointer;padding:6px 12px;border-radius:7px;color:var(--ink2);font-size:13px}
+  .tab.active{background:var(--panel2);color:var(--ink);box-shadow:inset 0 -2px 0 var(--ok)}
+  .pane{display:none;animation:fade .35s ease}
+  .pane.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+  td code,li code,p code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:#c7d2fe;background:#1b2440;padding:1px 4px;border-radius:4px;word-break:break-all}
+  h4.sec{margin:16px 0 6px;font-size:13px;color:var(--ink2)}
+  .ok{color:var(--reply)} .bad{color:var(--deny)} .warnc{color:var(--warn)}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .opt{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .opt b{display:block;margin-bottom:4px}
+  .opt p{margin:0;color:var(--ink2);font-size:12.5px}
+  .gapbox{border:1px solid #7c4a1f;background:rgba(251,146,60,.07);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+  .tile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .tile .v{font-size:26px;font-weight:700;color:var(--ink)}
+  .tile .l{color:var(--ink2);font-size:12px}
+  .bars{display:flex;flex-direction:column;gap:12px;max-width:760px;position:relative}
+  .bar{display:grid;grid-template-columns:150px 1fr 70px;align-items:center;gap:10px;font-size:12.5px}
+  .bar .track{height:18px;position:relative}
+  .bar .fill{height:100%;width:0;background:#38bdf8;border-radius:0 4px 4px 0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+  .bar .val{color:var(--ink);font-variant-numeric:tabular-nums}
+  .bar:hover .fill{background:#7dd3fc}
+  #tip{position:fixed;pointer-events:none;background:#0f172a;border:1px solid #3a4a72;border-radius:6px;padding:5px 8px;font-size:12px;display:none;z-index:9}
+  footer{color:var(--muted);font-size:11.5px;padding:0 16px 20px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>FDE-Agents — Complete End-to-End Test Bed Architecture</h1>
+    <div class="meta">Project <b>geagent-sasfar-ooc</b> (172882039333) · Region <b>us-central1</b></div>
+  </div>
+  <div class="chips">
+    <span class="chip">SPIFFE</span><span class="chip">Vaulted API Key</span><span class="chip">2LO</span><span class="chip">3LO + PKCE</span><span class="chip">GitHub 3LO</span><span class="chip">Ingress / Egress Agent Gateways</span><span class="chip">Secure Web Proxy</span><span class="chip">Model Armor</span><span class="chip">Agent Registry</span><span class="chip">Eval Suites</span>
+  </div>
+</header>
+
+<main>
+  <aside class="card side">
+    <h3>Flows — click to animate</h3>
+    <div id="scnList"></div>
+    <div class="controls">
+      <button class="btn primary" id="tourBtn">▶ Full tour</button>
+      <button class="btn" id="playBtn">❚❚ Pause</button>
+      <button class="btn" id="prevBtn">◀</button>
+      <button class="btn" id="nextBtn">▶|</button>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+    <label class="speed">Speed <input type="range" id="speed" min="0.4" max="2.5" step="0.1" value="1"><span id="speedV">1.0×</span></label>
+    <h3 style="margin-top:10px">Tip</h3>
+    <div style="color:var(--ink2);font-size:12px">Click any box in the diagram to see its endpoint, identity and status. Click a step on the right to jump to it.</div>
+  </aside>
+
+  <div class="card stage">
+    <div class="legend">
+      <span><i style="background:var(--ok)"></i>request</span>
+      <span><i style="background:var(--token)"></i>credential / token</span>
+      <span><i style="background:var(--consent)"></i>user consent (3LO)</span>
+      <span><i style="background:var(--reply)"></i>response</span>
+      <span><i style="background:var(--warn)"></i>warning / gap</span>
+      <span><i style="background:var(--deny)"></i>denied / blocked</span>
+    </div>
+    <svg id="arch" viewBox="0 0 1600 1000" role="img" aria-label="FDE-Agents architecture diagram">
+      <defs>
+        <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+      <g id="zones"></g>
+      <g id="statics"></g>
+      <g id="trails"></g>
+      <g id="nodes"></g>
+      <g id="fx"></g>
+    </svg>
+    <div id="drawer"><span class="x" id="dx">✕</span><h4 id="dt"></h4><div class="sub" id="ds"></div><dl id="dd"></dl></div>
+  </div>
+
+  <aside class="card narr">
+    <h3>Now playing</h3>
+    <div class="title" id="scTitle">—</div>
+    <div class="desc" id="scDesc"></div>
+    <div class="now" id="now"><div class="lbl" id="nowLbl">Pick a flow or press “Full tour”.</div><div class="txt" id="nowTxt"></div></div>
+    <h3>Steps</h3>
+    <ol class="steps" id="steps"></ol>
+  </aside>
+</main>
+
+<section class="card ref">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-p="p-inv">Inventory</button>
+    <button class="tab" data-p="p-auth">Auth methods &amp; providers</button>
+    <button class="tab" data-p="p-gw">Gateways, networking &amp; Model Armor</button>
+    <button class="tab" data-p="p-gap">Ingress AuthN gap</button>
+    <button class="tab" data-p="p-eval">Evaluation suites</button>
+  </div>
+
+  <div class="pane active" id="p-inv">
+    <h4 class="sec">A. Outside Google Cloud</h4>
+    <table>
+      <tr><th>Component</th><th>Platform</th><th>Endpoint / source</th><th>Auth &amp; identity</th><th>Status</th></tr>
+      <tr><td><b>local-mac-agent</b></td><td>Local macOS</td><td><code>http://localhost:8090</code> (<code>/.well-known/agent.json</code>, <code>/mcp</code>), <code>local_agent.py</code></td><td>Local process (no GCP SPIFFE)</td><td class="ok">Active — calls GCP ALB 35.209.113.245</td></tr>
+      <tr><td><b>gh-mcp-server</b></td><td>Railway (Bun Function)</td><td><code>https://gh-mcp-server-production.up.railway.app/mcp</code>, <code>gh_mcp_server/index.ts</code></td><td>Inbound <code>Authorization: Bearer &lt;MCP_BEARER_TOKEN&gt;</code> (gh-mcp-token) + per-request <code>X-GitHub-Token: &lt;gho_...&gt;</code></td><td class="ok">Live — real api.github.com calls (gh_whoami, gh_list_my_repos)</td></tr>
+      <tr><td><b>github-mcp-render</b></td><td>Workspace Render template</td><td><code>github-mcp-render/server.py</code></td><td><code>MCP_AUTH_TOKEN</code> + <code>GITHUB_TOKEN</code></td><td>Reference Python Streamable HTTP MCP server</td></tr>
+      <tr><td><b>GitHub OAuth App</b></td><td>github.com</td><td>Client ID <code>Ov23lichygy8VMPnfuLZ</code></td><td>redirectUrl <code>https://agentidentitycredentials.googleapis.com/v1/projects/geagent-sasfar-ooc/locations/us-central1/authProviders/github-3lo/oauthcallback</code></td><td class="ok">Active for github-3lo</td></tr>
+    </table>
+    <h4 class="sec">B. Inside Google Cloud (geagent-sasfar-ooc / us-central1)</h4>
+    <table>
+      <tr><th>Component</th><th>Platform &amp; networking</th><th>Endpoint / resource</th><th>Identity &amp; registration</th><th>Status</th></tr>
+      <tr><td><b>crm-agent-id</b></td><td>Cloud Run (agent-lab-vpc, ingress internal-and-cloud-load-balancing)</td><td>Direct <code>*.run.app</code> → 404 from internet; reachable via ALB <code>http://35.209.113.245</code></td><td>SPIFFE AGENT_IDENTITY <code>principal://agents.global.org-91854922466.system.id.goog/.../services/crm-agent-id</code>; in Agent Registry</td><td class="ok">Live (rev 00009-zv9); Flow 1 verified via SWP 10.10.0.40:80</td></tr>
+      <tr><td><b>test-agent-ar</b></td><td>Vertex AI Agent Engine</td><td><code>projects/172882039333/locations/us-central1/reasoningEngines/8894320367376531456</code></td><td>SPIFFE RuntimeIdentity in Agent Registry (SEC-07)</td><td class="ok">Live; Flow 2 (mode="mcp") &amp; Layer 1 (5.000/5.000)</td></tr>
+      <tr><td><b>test-agent-cr</b></td><td>Cloud Run (ingress: all)</td><td><code>https://test-agent-cr-5im2gb6gtq-uc.a.run.app</code></td><td>Legacy Compute SA <code>172882039333-compute@developer.gserviceaccount.com</code></td><td class="bad">Negative control (SEC-01 denied by Broker)</td></tr>
+      <tr><td><b>crm-tool-mock</b></td><td>Cloud Run</td><td><code>https://crm-tool-mock-5im2gb6gtq-uc.a.run.app</code></td><td>Cloud Run service</td><td>Mock CRM + OAuth <code>/authorize</code> &amp; <code>/oauth/token</code></td></tr>
+      <tr><td><b>Workspace Agent</b></td><td>Google-managed</td><td><code>https://workspaceagent.googleapis.com/a2a</code></td><td>Agent Registry (A2A_AGENT)</td><td>Present in us-central1 registry</td></tr>
+    </table>
+  </div>
+
+  <div class="pane" id="p-auth">
+    <table>
+      <tr><th>Auth method</th><th>Auth provider ID</th><th>Target / downstream</th><th>Scope &amp; isolation policy</th><th>Verified behavior</th></tr>
+      <tr><td><b>Workload Identity (SPIFFE)</b></td><td>Native runtime (crm-agent-id, test-agent-ar)</td><td>GCP Credential Broker</td><td>Cryptographic <code>principal://agents.global.org-...</code></td><td>Required for all auth providers; <span class="bad">legacy SA rejected (SEC-01)</span></td></tr>
+      <tr><td><b>Vaulted API Key (LLM)</b></td><td><code>gemini-api-key</code></td><td>generativelanguage.googleapis.com</td><td>Key <code>agent-vertex-gemini-key</code> restricted to Gemini API</td><td class="ok">crm-agent-id &amp; test-agent-ar call gemini-3.8-flash with zero env secrets</td></tr>
+      <tr><td><b>Vaulted Bearer Token (MCP)</b></td><td><code>gh-mcp-token</code></td><td>Railway gh-mcp-server</td><td><code>user_id="system"</code></td><td class="ok">Authenticates agent → Railway /mcp</td></tr>
+      <tr><td><b>Vaulted API Key (CRM)</b></td><td><code>crm-api-key</code></td><td>crm-tool-mock (<code>/v1/public-catalog</code>)</td><td>Bound to SPIFFE workload</td><td>Stage 1 <span class="ok">ALLOWED</span> for crm-agent-id, <span class="bad">DENIED</span> for test-agent-cr</td></tr>
+      <tr><td><b>2-Legged OAuth (2LO)</b></td><td><code>crm-2lo</code></td><td>crm-tool-mock (<code>/oauth/token</code>, client_credentials)</td><td>allowed <code>metrics:read</code>; blocked <code>metrics:delete</code></td><td><span class="ok">metrics:read ALLOWED</span>; <span class="bad">metrics:delete DENIED_BY_GCP_BROKER</span></td></tr>
+      <tr><td><b>3-Legged OAuth + PKCE (Mock CRM)</b></td><td><code>crm-3lo</code></td><td>crm-tool-mock (<code>/oauth/authorize</code>, PKCE S256)</td><td>allowed <code>deals:read</code>; blocked <code>deals:admin</code></td><td>Per-user consent &amp; isolation (alice vs. other users)</td></tr>
+      <tr><td><b>3-Legged OAuth (Real GitHub)</b></td><td><code>github-3lo</code></td><td>github.com/login/oauth → Railway → api.github.com</td><td>allowed <code>read:user,repo</code>; blocked <code>delete_repo,admin:org</code></td><td><span class="ok">asfar ALLOWED</span> (gh_whoami, gh_list_my_repos); <span class="warnc">alice CONSENT_REQUIRED</span>; <span class="bad">delete_repo DENIED_BY_GCP_BROKER</span></td></tr>
+    </table>
+  </div>
+
+  <div class="pane" id="p-gw">
+    <table>
+      <tr><th>Resource</th><th>Type / role</th><th>Address / config</th><th>Notes</th></tr>
+      <tr><td><b>crm-alb-ma-extension</b></td><td>Edge Model Armor (EXTERNAL_MANAGED)</td><td><code>crm-guardrail-tpl</code>, failOpen: false</td><td>Inspects inbound ALB traffic (SEC-05)</td></tr>
+      <tr><td><b>crm-ingress-gw</b></td><td>googleManaged AgentGateway</td><td>CLIENT_TO_AGENT, <code>crm-ma-extension</code>, <code>crm-ma-authz-policy</code></td><td>Ingress Agent Gateway definition</td></tr>
+      <tr><td><b>crm-swp-egress</b></td><td>SECURE_WEB_GATEWAY (VPC SWP)</td><td><code>10.10.0.40:80</code> in agent-lab-vpc, <code>crm-swp-policy</code> (allow-mcp-and-crm)</td><td class="ok">Active Flow 1 egress proxy for crm-agent-id (blocks example.com with 403)</td></tr>
+      <tr><td><b>crm-egress-swp-gw</b></td><td>selfManaged AgentGateway</td><td>resourceUris: [crm-swp-egress], linked to Agent Registry</td><td>Governs VPC SWP egress</td></tr>
+      <tr><td><b>crm-egress-gw</b></td><td>googleManaged AgentGateway</td><td>AGENT_TO_ANYWHERE, <code>crm-egress-ma-extension</code> (<code>crm-egress-guardrail-tpl</code>)</td><td class="ok">Flow 2 governance for test-agent-ar (SEC-06)</td></tr>
+      <tr><td><b>crm-egress-gw-psc</b></td><td>PSC forwarding rule</td><td><code>10.10.0.10</code> → <code>unitkind1-swp-mtls-psc-sa</code> (y22363041959a0ba9p-tp)</td><td class="warnc">pscConnectionStatus: PENDING — not used by Cloud Run; replaced by crm-swp-egress 10.10.0.40:80</td></tr>
+    </table>
+  </div>
+
+  <div class="pane" id="p-gap">
+    <div class="gapbox"><b class="warnc">Current ingress AuthN gap (to harden next)</b><br>
+      <span style="color:var(--ink2);font-size:13px">crm-agent-id has <code>roles/run.invoker</code> restricted to a single user, but the External ALB (<code>http://35.209.113.245</code> / <code>crm-agent-id-bs</code>) is HTTP-only with <code>iap.enabled</code> unset, and FastAPI does not enforce an inbound token check — so the ALB path is effectively unauthenticated. Run the <i>Inbound</i> flow to see it.</span></div>
+    <div class="grid3">
+      <div class="opt"><b>① HTTPS + IAP on crm-agent-id-bs</b><p><code>--iap=enabled</code>. Strongest, Google-managed identity at the edge. Requires a domain + SSL certificate on the ALB.</p></div>
+      <div class="opt"><b>② App-level AuthN middleware</b><p>In <code>agent_cr_id/app.py</code>: verify Bearer token / Google OIDC JWT on every request, exempting <code>/health</code> and <code>/oauth/callback</code>.</p></div>
+      <div class="opt"><b>③ Cloud Armor IP allowlist</b><p>Attach a security policy to <code>crm-agent-id-bs</code> allowing only known source IPs. Quick, but network-based rather than identity-based.</p></div>
+    </div>
+  </div>
+
+  <div class="pane" id="p-eval">
+    <div class="tiles">
+      <div class="tile"><div class="v">5.000<span style="font-size:15px;color:var(--ink2)"> / 5.000</span></div><div class="l">test-agent-ar · Layer 1 EvalTask (agent-security-lab-eval)</div></div>
+      <div class="tile"><div class="v">4 <span style="font-size:15px;color:var(--ink2)">checks pass</span></div><div class="l">Layer 2 · SEC-01, SEC-05, SEC-06, SEC-07</div></div>
+      <div class="tile"><div class="v">65.8%</div><div class="l">Saved by context (prompt) caching</div></div>
+      <div class="tile"><div class="v">65.8%</div><div class="l">Prompt tokens cut by SQLite memory persistence</div></div>
+    </div>
+    <h4 class="sec">Cost lens — USD per 1,000 requests (eval_cost_and_memory.py)</h4>
+    <div class="bars" id="bars"></div>
+    <h4 class="sec">Scripts</h4>
+    <table>
+      <tr><th>Script</th><th>What it evaluates</th><th>Key verified findings</th></tr>
+      <tr><td><code>eval_agents.py</code></td><td>Layer 1 (EvalTask → agent-security-lab-eval) &amp; Layer 2 (SEC-01..SEC-07)</td><td>test-agent-ar 5.000/5.000; SEC-01, SEC-05, SEC-06, SEC-07 pass</td></tr>
+      <tr><td><code>eval_cost_and_memory.py</code></td><td>Cost lens (gemini-3.5-flash-lite vs 3.8-flash vs 3.1-pro-preview), prompt caching, SQLite memory persistence</td><td>$0.26 vs $4.09 vs $18.70 per 1k; context cache saved 65.8%; SQLite memory cut prompt tokens 65.8%</td></tr>
+    </table>
+  </div>
+</section>
+<div id="tip"></div>
+<footer>Generated visualization of the FDE-Agents test bed. Animations are illustrative of the verified flows described in the architecture notes.</footer>
+
+<script>
+/* ------------------------------------------------------------------ data */
+const ZONES = [
+  {cls:'outside', x:20,  y:20,  w:300, h:960, label:'Outside Google Cloud'},
+  {cls:'gcp',     x:350, y:20,  w:1230,h:960, label:'Google Cloud · geagent-sasfar-ooc (172882039333) · us-central1'},
+  {cls:'sub',     x:370, y:70,  w:200, h:430, label:'Edge / Ingress'},
+  {cls:'vpc',     x:600, y:70,  w:400, h:510, label:'VPC · agent-lab-vpc'},
+  {cls:'sub',     x:370, y:610, w:200, h:170, label:'Agent egress'},
+  {cls:'sub',     x:600, y:610, w:400, h:170, label:'Vertex AI Agent Engine'},
+  {cls:'sub',     x:600, y:810, w:400, h:150, label:'Cloud Run · ingress: all'},
+  {cls:'sub',     x:1030,y:70,  w:320, h:570, label:'Agent Identity & Credential Broker'},
+  {cls:'sub',     x:1030,y:670, w:320, h:290, label:'Evaluation suites'},
+  {cls:'sub',     x:1375,y:70,  w:190, h:890, label:'Services & registry'},
+];
+const T = {agent:'#38bdf8', gw:'#a78bfa', sec:'#f472b6', id:'#fbbf24', ext:'#94a3b8', svc:'#34d399', eval:'#60a5fa', user:'#e879f9'};
+const NODES = {
+  local:   {x:170,y:120,w:250,h:66,type:'agent',tag:'agent · local',t:'local-mac-agent',s:'localhost:8090 · local_agent.py',
+            d:{Location:'Local macOS',Endpoint:'http://localhost:8090 (/.well-known/agent.json, /mcp)',Identity:'Local process (no GCP SPIFFE)',Status:'Active; calls GCP ALB 35.209.113.245'}},
+  user:    {x:170,y:240,w:250,h:66,type:'user',tag:'humans',t:'End users (browser)',s:'asfar · alice — 3LO consent',
+            d:{Role:'Resource owners for 3LO flows',asfar:'Consented to github-3lo → ALLOWED',alice:'Per-user isolation; CONSENT_REQUIRED for github-3lo'}},
+  ghOAuth: {x:170,y:360,w:250,h:66,type:'ext',tag:'saas · oauth',t:'GitHub OAuth App',s:'github.com/login/oauth · Ov23li…',
+            d:{'Client ID':'Ov23lichygy8VMPnfuLZ',Redirect:'https://agentidentitycredentials.googleapis.com/v1/projects/geagent-sasfar-ooc/locations/us-central1/authProviders/github-3lo/oauthcallback',Status:'Active for github-3lo'}},
+  railway: {x:170,y:490,w:250,h:66,type:'svc',tag:'mcp · railway',t:'gh-mcp-server',s:'Railway Bun function · /mcp',
+            d:{Endpoint:'https://gh-mcp-server-production.up.railway.app/mcp',Source:'gh_mcp_server/index.ts',Auth:'Authorization: Bearer <MCP_BEARER_TOKEN> (gh-mcp-token) + X-GitHub-Token: <gho_...>',Status:'Live; real api.github.com calls (gh_whoami, gh_list_my_repos)'}},
+  apigh:   {x:170,y:620,w:250,h:66,type:'ext',tag:'saas · api',t:'api.github.com',s:'GitHub REST API',
+            d:{'Called by':'gh-mcp-server (Railway)',Tools:'gh_whoami, gh_list_my_repos'}},
+  render:  {x:170,y:750,w:250,h:66,type:'svc',tag:'reference',t:'github-mcp-render',s:'Render template · server.py',dashed:true,
+            d:{Source:'github-mcp-render/server.py',Auth:'MCP_AUTH_TOKEN + GITHUB_TOKEN',Status:'Reference Python Streamable HTTP MCP server'}},
+  example: {x:170,y:890,w:250,h:66,type:'ext',tag:'internet',t:'example.com',s:'not on SWP allowlist',
+            d:{Purpose:'Negative egress test',Result:'SWP crm-swp-egress returns HTTP 403'}},
+
+  alb:     {x:470,y:140,w:180,h:70,type:'gw',tag:'ext. ALB',t:'External ALB',s:'35.209.113.245 · HTTP only',
+            d:{Address:'http://35.209.113.245',Backend:'crm-agent-id-bs',IAP:'iap.enabled unset (gap)',TLS:'HTTP only (gap)'}},
+  edgeMA:  {x:470,y:280,w:180,h:70,type:'sec',tag:'model armor',t:'Edge Model Armor',s:'crm-alb-ma-extension',
+            d:{Type:'EXTERNAL_MANAGED service extension',Template:'crm-guardrail-tpl',failOpen:'false',Check:'SEC-05 pass'}},
+  ingressGw:{x:470,y:420,w:180,h:70,type:'gw',tag:'agent gateway',t:'crm-ingress-gw',s:'googleManaged · CLIENT_TO_AGENT',
+            d:{Type:'googleManaged AgentGateway',Mode:'CLIENT_TO_AGENT',Extensions:'crm-ma-extension',Policy:'crm-ma-authz-policy'}},
+
+  crmAgent:{x:800,y:150,w:300,h:70,type:'agent',tag:'agent · cloud run',t:'crm-agent-id',s:'rev 00009-zv9 · SPIFFE AGENT_IDENTITY',
+            d:{Platform:'Cloud Run in agent-lab-vpc',Ingress:'internal-and-cloud-load-balancing (direct *.run.app → 404)',Identity:'principal://agents.global.org-91854922466.system.id.goog/.../services/crm-agent-id',Registry:'Registered in Agent Registry',Status:'Live; Flow 1 verified via SWP 10.10.0.40:80'}},
+  swp:     {x:800,y:290,w:300,h:66,type:'gw',tag:'secure web proxy',t:'crm-swp-egress',s:'SWP 10.10.0.40:80 · allow-mcp-and-crm',
+            d:{Type:'SECURE_WEB_GATEWAY (VPC SWP)',Address:'10.10.0.40:80',Policy:'crm-swp-policy (allow-mcp-and-crm)',Behavior:'Active Flow 1 egress proxy; blocks example.com with 403'}},
+  swpGw:   {x:800,y:405,w:300,h:60,type:'gw',tag:'agent gateway',t:'crm-egress-swp-gw',s:'selfManaged · resourceUris: [crm-swp-egress]',
+            d:{Type:'selfManaged AgentGateway',Resources:'crm-swp-egress',Registry:'Linked to Agent Registry',Role:'Governs VPC SWP egress'}},
+  psc:     {x:800,y:515,w:300,h:60,type:'gw',tag:'psc · pending',t:'crm-egress-gw-psc',s:'10.10.0.10 · PENDING (unused)',dim:true,
+            d:{Type:'PSC forwarding rule',Address:'10.10.0.10',Target:'unitkind1-swp-mtls-psc-sa (y22363041959a0ba9p-tp)',Status:'pscConnectionStatus: PENDING — replaced by crm-swp-egress'}},
+  egressGw:{x:470,y:695,w:180,h:76,type:'gw',tag:'agent gateway',t:'crm-egress-gw',s:'AGENT_TO_ANYWHERE + MA',
+            d:{Type:'googleManaged AgentGateway',Mode:'AGENT_TO_ANYWHERE',Extension:'crm-egress-ma-extension (crm-egress-guardrail-tpl)',Check:'SEC-06 — Flow 2 governance for test-agent-ar'}},
+  testAr:  {x:800,y:695,w:300,h:70,type:'agent',tag:'agent · agent engine',t:'test-agent-ar',s:'reasoningEngines/8894…1456 · SPIFFE',
+            d:{Platform:'Vertex AI Agent Engine',Resource:'projects/172882039333/locations/us-central1/reasoningEngines/8894320367376531456',Identity:'SPIFFE RuntimeIdentity (Agent Registry, SEC-07)',Status:'Live; Flow 2 (mode="mcp") & Layer 1 5.000/5.000'}},
+  testCr:  {x:800,y:890,w:300,h:70,type:'agent',tag:'negative control',t:'test-agent-cr',s:'Legacy compute SA · no SPIFFE',
+            d:{Endpoint:'https://test-agent-cr-5im2gb6gtq-uc.a.run.app',Identity:'172882039333-compute@developer.gserviceaccount.com',Status:'Negative control — SEC-01 denied by Broker'}},
+
+  broker:  {x:1190,y:140,w:290,h:70,type:'id',tag:'credential broker',t:'GCP Credential Broker',s:'agentidentitycredentials.googleapis.com',
+            d:{Role:'Mints/vends credentials only to SPIFFE-identified agents',Enforces:'allowedScopes / blockedScopes per auth provider',Rejects:'Legacy service accounts (SEC-01)'}},
+  pGemini: {x:1112,y:255,w:150,h:56,type:'id',tag:'api key',t:'gemini-api-key',s:'→ Gemini API',
+            d:{Kind:'Vaulted API key (LLM)',Key:'agent-vertex-gemini-key (restricted to Gemini API)',Target:'generativelanguage.googleapis.com'}},
+  pGhMcp:  {x:1270,y:255,w:150,h:56,type:'id',tag:'bearer',t:'gh-mcp-token',s:'→ Railway /mcp',
+            d:{Kind:'Vaulted bearer token (MCP)',Policy:'user_id="system"',Target:'Railway gh-mcp-server'}},
+  pCrmKey: {x:1112,y:340,w:150,h:56,type:'id',tag:'api key',t:'crm-api-key',s:'→ /v1/public-catalog',
+            d:{Kind:'Vaulted API key (CRM)',Policy:'Bound to SPIFFE workload',Result:'ALLOWED crm-agent-id · DENIED test-agent-cr'}},
+  p2lo:    {x:1270,y:340,w:150,h:56,type:'id',tag:'2lo',t:'crm-2lo',s:'client_credentials',
+            d:{Kind:'2-legged OAuth',Allowed:'metrics:read',Blocked:'metrics:delete → DENIED_BY_GCP_BROKER'}},
+  p3lo:    {x:1112,y:425,w:150,h:56,type:'id',tag:'3lo + pkce',t:'crm-3lo',s:'PKCE S256 · per-user',
+            d:{Kind:'3-legged OAuth + PKCE (mock CRM)',Allowed:'deals:read',Blocked:'deals:admin',Isolation:'Per-user consent (alice vs others)'}},
+  pGh3lo:  {x:1270,y:425,w:150,h:56,type:'id',tag:'3lo',t:'github-3lo',s:'real GitHub OAuth',
+            d:{Kind:'3-legged OAuth (real GitHub)',Allowed:'read:user, repo',Blocked:'delete_repo, admin:org',Results:'asfar ALLOWED · alice CONSENT_REQUIRED · delete_repo DENIED'}},
+  trust:   {x:1190,y:560,w:290,h:64,type:'id',tag:'trust domain',t:'SPIFFE workload identity',s:'principal://agents.global.org-91854922466…',
+            d:{Holders:'crm-agent-id, test-agent-ar',Rule:'Required for all auth providers',Rejected:'Legacy SA (test-agent-cr)'}},
+
+  evalAgents:{x:1190,y:745,w:290,h:66,type:'eval',tag:'eval',t:'eval_agents.py',s:'Layer 1 · Layer 2 SEC-01..07',
+            d:{'Layer 1':'EvalTask → agent-security-lab-eval: test-agent-ar 5.000/5.000','Layer 2':'SEC-01, SEC-05, SEC-06, SEC-07 pass'}},
+  evalCost:{x:1190,y:875,w:290,h:66,type:'eval',tag:'eval',t:'eval_cost_and_memory.py',s:'cost · caching · SQLite memory',
+            d:{'3.5-flash-lite':'$0.26 / 1k','3.8-flash':'$4.09 / 1k','3.1-pro-preview':'$18.70 / 1k',Caching:'Context cache saved 65.8%',Memory:'SQLite memory cut prompt tokens 65.8%'}},
+
+  registry:{x:1470,y:140,w:170,h:70,type:'svc',tag:'registry',t:'Agent Registry',s:'us-central1',
+            d:{Entries:'crm-agent-id, test-agent-ar, Workspace Agent (A2A_AGENT)',Linked:'crm-egress-swp-gw'}},
+  workspace:{x:1470,y:260,w:170,h:70,type:'svc',tag:'google-managed',t:'Workspace Agent',s:'workspaceagent…/a2a',
+            d:{Endpoint:'https://workspaceagent.googleapis.com/a2a',Registration:'A2A_AGENT in Agent Registry'}},
+  gemini:  {x:1470,y:400,w:170,h:70,type:'svc',tag:'google api',t:'Gemini API',s:'generativelanguage…',
+            d:{Endpoint:'generativelanguage.googleapis.com',Model:'gemini-3.8-flash',Auth:'gemini-api-key via Broker (zero env secrets)'}},
+  crmTool: {x:1470,y:560,w:170,h:80,type:'svc',tag:'cloud run',t:'crm-tool-mock',s:'catalog · /oauth/*',
+            d:{Endpoint:'https://crm-tool-mock-5im2gb6gtq-uc.a.run.app',APIs:'/v1/public-catalog, /oauth/authorize, /oauth/token',Role:'Mock CRM + OAuth server for 2LO / 3LO'}},
+};
+const STATICS = [
+  ['local','alb',.08],['alb','edgeMA',0],['alb','crmAgent',0],['ingressGw','crmAgent',.12],['ingressGw','edgeMA',0,'weak'],
+  ['crmAgent','swp',0],['swp','swpGw',0],['swp','psc',.35,'weak'],['swp','crmTool',-.12],['swp','railway',.12],['swp','example',.28,'bad'],
+  ['crmAgent','broker',0],['testAr','broker',-.15],['testCr','broker',.2,'bad'],
+  ['broker','pGemini',0],['broker','pGhMcp',0],['broker','pCrmKey',0],['broker','p2lo',0],['broker','p3lo',0],['broker','pGh3lo',0],
+  ['crmAgent','gemini',-.22],['testAr','egressGw',0],['egressGw','railway',0],['railway','apigh',0],
+  ['user','ghOAuth',0],['ghOAuth','pGh3lo',-.08,'weak'],['user','crmTool',-.12,'weak'],
+  ['crmAgent','registry',-.18,'weak'],['testAr','registry',.25,'weak'],['workspace','registry',0],['swpGw','registry',-.12,'weak'],
+  ['evalAgents','testAr',0,'weak'],['evalCost','gemini',.2,'weak'],
+];
+
+/* bend values for animated hops (key 'a>b'); unknown pairs default */
+const BEND = {'local>crmAgent':-.12,'crmTool>crmAgent':.14,'crmAgent>local':-.12,'swp>example':.28,'swp>railway':.12,'swp>crmTool':-.12,
+  'testCr>broker':.2,'testCr>pCrmKey':.18,'crmAgent>gemini':-.22,'gemini>crmAgent':.22,'testAr>gemini':-.2,'gemini>testAr':.2,'pGemini>testAr':.15,'pGhMcp>testAr':.12,
+  'p3lo>user':-.1,'user>crmTool':-.1,'pGh3lo>user':-.12,'ghOAuth>pGh3lo':-.08,'railway>crmAgent':.18,'pGh3lo>crmAgent':-.12,'p2lo>crmAgent':-.1,'p3lo>crmAgent':-.1,
+  'crmAgent>registry':-.18,'testAr>registry':.25,'swpGw>registry':-.12,'evalCost>gemini':.2,'evalAgents>broker':.15,'testAr>broker':-.15,'pCrmKey>crmAgent':-.08,
+  'p2lo>crmTool':-.05,'crmTool>p2lo':.05,'p3lo>crmTool':-.05,'crmTool>p3lo':.05,'railway>testAr':.1};
+
+const S = (from,to,kind,label,text)=>({from,to,kind,label,text});
+const F = (focus,kind,label,text)=>({focus:[].concat(focus),kind,label,text});
+const SCENARIOS = [
+  {id:'inbound', name:'Inbound → crm-agent-id', sub:'ALB · Edge Model Armor · AuthN gap',
+   desc:'How an agent outside GCP reaches crm-agent-id, what Model Armor inspects at the edge, and where the current ingress gap is.',
+   steps:[
+    S('local','crmAgent','block','404','Calling crm-agent-id’s *.run.app URL directly from the internet returns 404 — Cloud Run ingress is internal-and-cloud-load-balancing.'),
+    S('local','alb','ok','POST (HTTP)','local-mac-agent (localhost:8090) calls the External ALB at http://35.209.113.245.'),
+    S('alb','edgeMA','ok','inspect prompt','The ALB service extension crm-alb-ma-extension sends the request to Model Armor template crm-guardrail-tpl (failOpen: false).'),
+    S('edgeMA','alb','reply','clean ✓','A benign prompt passes the guardrail.'),
+    S('alb','crmAgent','ok','crm-agent-id-bs','Backend service crm-agent-id-bs routes into Cloud Run crm-agent-id (rev 00009-zv9) in agent-lab-vpc.'),
+    S('crmAgent','local','reply','200 OK','crm-agent-id answers the local agent (A2A card at /.well-known/agent.json).'),
+    S('local','alb','warn','injection attempt','Now a prompt-injection / jailbreak payload is sent through the same path…'),
+    S('alb','edgeMA','deny','BLOCKED · SEC-05','…and Model Armor blocks it at the edge before it ever reaches the agent. failOpen:false means an MA outage also fails closed. SEC-05 pass.'),
+    F('ingressGw','info','Ingress Agent Gateway','crm-ingress-gw is the googleManaged CLIENT_TO_AGENT Agent Gateway definition bundling crm-ma-extension and crm-ma-authz-policy.'),
+    F(['alb','crmAgent'],'warn','AuthN gap','ALB is HTTP-only, IAP is unset and FastAPI has no inbound token check, so roles/run.invoker does not protect this path. Fix with HTTPS + IAP, app-level OIDC/Bearer middleware (exempt /health, /oauth/callback), or a Cloud Armor allowlist.'),
+   ]},
+  {id:'flow1', name:'Flow 1 · SWP egress', sub:'crm-agent-id → Secure Web Proxy',
+   desc:'crm-agent-id gets a credential from the Broker, then all of its egress is forced through the VPC Secure Web Proxy.',
+   steps:[
+    S('crmAgent','broker','ok','SPIFFE principal','crm-agent-id presents its AGENT_IDENTITY (principal://agents.global.org-91854922466.system.id.goog/…/services/crm-agent-id).'),
+    S('broker','pCrmKey','token','resolve crm-api-key','The Broker resolves auth provider crm-api-key, which is bound to this SPIFFE workload.'),
+    S('pCrmKey','crmAgent','token','API key (runtime)','Key handed to the agent at call time — no secrets in env vars.'),
+    S('crmAgent','swp','ok','proxy 10.10.0.40:80','Outbound traffic goes through SWP crm-swp-egress at 10.10.0.40:80.'),
+    F('swpGw','info','SWP Agent Gateway','crm-egress-swp-gw (selfManaged AgentGateway, resourceUris: [crm-swp-egress]) governs this proxy and is linked to Agent Registry.'),
+    S('swp','crmTool','ok','/v1/public-catalog','crm-swp-policy (allow-mcp-and-crm) permits the CRM — Stage 1 ALLOWED.'),
+    S('crmTool','crmAgent','reply','200 catalog','Catalog data returns to the agent.'),
+    S('swp','railway','ok','/mcp + Bearer','MCP calls to Railway gh-mcp-server are also allowed by the policy.'),
+    S('swp','example','block','403','Anything not allowlisted (e.g. example.com) is refused by the SWP with HTTP 403.'),
+    F('psc','info','PSC path unused','crm-egress-gw-psc (10.10.0.10 → unitkind1-swp-mtls-psc-sa) is still PENDING and not used by Cloud Run; crm-swp-egress replaced it.'),
+   ]},
+  {id:'flow2', name:'Flow 2 · Agent Engine → MCP', sub:'test-agent-ar → crm-egress-gw → Railway',
+   desc:'The Agent Engine agent uses a vaulted MCP bearer token and goes out through the googleManaged egress Agent Gateway with Model Armor.',
+   steps:[
+    S('testAr','broker','ok','SPIFFE RuntimeIdentity','test-agent-ar authenticates to the Broker with its Agent Engine SPIFFE RuntimeIdentity.'),
+    S('broker','pGhMcp','token','gh-mcp-token','Broker resolves the vaulted bearer token gh-mcp-token (user_id="system").'),
+    S('pGhMcp','testAr','token','Bearer token','MCP bearer token delivered to the agent.'),
+    S('testAr','egressGw','ok','mode="mcp"','Egress enters crm-egress-gw (googleManaged, AGENT_TO_ANYWHERE).'),
+    F('egressGw','info','Egress Model Armor','crm-egress-ma-extension applies crm-egress-guardrail-tpl to outbound traffic — SEC-06 pass.'),
+    S('egressGw','railway','ok','POST /mcp','Authorization: Bearer <MCP_BEARER_TOKEN> reaches Railway gh-mcp-server.'),
+    S('railway','apigh','ok','GitHub REST','gh-mcp-server makes the real api.github.com call.'),
+    S('apigh','railway','reply','JSON','GitHub responds.'),
+    S('railway','egressGw','reply','tool result','Result flows back through the gateway (inspected again).'),
+    S('egressGw','testAr','reply','tool result','test-agent-ar receives the MCP tool result.'),
+    S('evalAgents','testAr','ok','Layer 1 EvalTask','eval_agents.py scores the agent with agent-security-lab-eval: 5.000 / 5.000.'),
+   ]},
+  {id:'llm', name:'LLM with vaulted key', sub:'gemini-api-key · zero env secrets',
+   desc:'Both SPIFFE agents call Gemini without ever storing an API key in their environment.',
+   steps:[
+    S('crmAgent','broker','ok','SPIFFE','crm-agent-id asks the Broker for its LLM credential.'),
+    S('broker','pGemini','token','gemini-api-key','Auth provider gemini-api-key holds agent-vertex-gemini-key.'),
+    S('pGemini','crmAgent','token','API key','Key is restricted to the Gemini API only.'),
+    S('crmAgent','gemini','ok','gemini-3.8-flash','Call to generativelanguage.googleapis.com.'),
+    S('gemini','crmAgent','reply','completion','Model response.'),
+    S('testAr','broker','ok','SPIFFE','test-agent-ar does the same from Agent Engine…'),
+    S('pGemini','testAr','token','API key','…receives the same restricted key…'),
+    S('testAr','gemini','ok','gemini-3.8-flash','…and calls Gemini — zero env secrets in either runtime.'),
+   ]},
+  {id:'sec01', name:'SEC-01 · Legacy SA denied', sub:'test-agent-cr negative control',
+   desc:'Identity, not network location, decides who gets credentials.',
+   steps:[
+    S('testCr','broker','deny','DENIED','test-agent-cr runs as the legacy compute SA (172882039333-compute@…). It has no SPIFFE principal, so the Credential Broker refuses it.'),
+    S('testCr','pCrmKey','deny','crm-api-key DENIED','Stage 1: crm-api-key is bound to the SPIFFE workload, so it is DENIED for test-agent-cr.'),
+    S('crmAgent','broker','reply','ALLOWED','The same request from crm-agent-id (SPIFFE) is ALLOWED.'),
+    F('trust','info','SPIFFE required','Every auth provider requires a cryptographic principal://agents.global.org-… identity. SEC-01 pass.'),
+   ]},
+  {id:'2lo', name:'2LO · client_credentials', sub:'crm-2lo · scope enforcement',
+   desc:'Machine-to-machine OAuth where the Broker enforces allowed vs blocked scopes.',
+   steps:[
+    S('crmAgent','broker','ok','scope metrics:read','crm-agent-id requests a token for scope metrics:read.'),
+    S('broker','p2lo','token','crm-2lo','Scope is in allowedScopes — Broker uses auth provider crm-2lo.'),
+    S('p2lo','crmTool','ok','POST /oauth/token','client_credentials grant against crm-tool-mock.'),
+    S('crmTool','p2lo','token','access_token','Mock CRM issues an access token.'),
+    S('p2lo','crmAgent','token','metrics:read token','Token delivered to the agent.'),
+    S('crmAgent','swp','ok','via SWP',''),
+    S('swp','crmTool','ok','GET metrics ✓','metrics:read ALLOWED.'),
+    S('crmAgent','broker','deny','metrics:delete DENIED','Asking for metrics:delete hits blockedScopes → DENIED_BY_GCP_BROKER. The request never reaches the CRM.'),
+   ]},
+  {id:'3lo', name:'3LO + PKCE · mock CRM', sub:'crm-3lo · per-user consent',
+   desc:'User-delegated OAuth with PKCE S256, per-user consent and isolation.',
+   steps:[
+    S('crmAgent','broker','consent','user=alice · deals:read','crm-agent-id asks for a deals:read token on behalf of alice.'),
+    S('broker','p3lo','token','crm-3lo','Broker selects crm-3lo; no stored grant for alice yet.'),
+    S('p3lo','user','consent','CONSENT_REQUIRED','Alice gets an authorization URL with a PKCE S256 code_challenge.'),
+    S('user','crmTool','consent','/oauth/authorize','Alice approves on crm-tool-mock.'),
+    S('crmTool','p3lo','token','code → oauthcallback','Authorization code is returned to the Broker callback.'),
+    S('p3lo','crmTool','ok','/oauth/token + verifier','Broker redeems the code with the PKCE code_verifier.'),
+    S('crmTool','p3lo','token','access_token (alice)','Token is vaulted per user.'),
+    S('p3lo','crmAgent','token','deals:read · alice','Agent receives alice’s token only.'),
+    S('crmAgent','swp','ok','via SWP',''),
+    S('swp','crmTool','ok','GET deals (alice)','Alice’s deals returned.'),
+    S('crmAgent','broker','deny','deals:admin DENIED','deals:admin is in blockedScopes → denied by the Broker.'),
+    F('p3lo','info','Per-user isolation','Other users get their own consent and token; alice’s grant is never reused for them.'),
+   ]},
+  {id:'gh3lo', name:'GitHub 3LO · real OAuth', sub:'github-3lo → Railway → api.github.com',
+   desc:'Real GitHub OAuth with the Broker as redirect target, then MCP tools run as the user.',
+   steps:[
+    S('crmAgent','broker','consent','user=asfar · read:user repo','Agent requests a GitHub token for asfar.'),
+    S('broker','pGh3lo','token','github-3lo',''),
+    S('pGh3lo','user','consent','redirect to GitHub','First use: asfar is sent to github.com/login/oauth.'),
+    S('user','ghOAuth','consent','authorize app','asfar authorizes OAuth App Ov23lichygy8VMPnfuLZ.'),
+    S('ghOAuth','pGh3lo','token','oauthcallback','GitHub redirects to …/authProviders/github-3lo/oauthcallback; token is vaulted.'),
+    S('pGh3lo','crmAgent','token','gho_… token','Agent receives asfar’s GitHub token.'),
+    S('crmAgent','swp','ok','Bearer + X-GitHub-Token','Bearer gh-mcp-token authenticates to Railway; X-GitHub-Token carries the user token.'),
+    S('swp','railway','ok','/mcp',''),
+    S('railway','apigh','ok','gh_whoami · repos','gh_whoami and gh_list_my_repos run against the real api.github.com.'),
+    S('apigh','railway','reply','200',''),
+    S('railway','crmAgent','reply','ALLOWED ✓','asfar ALLOWED.'),
+    S('crmAgent','broker','warn','alice → CONSENT_REQUIRED','alice has not consented, so the Broker returns CONSENT_REQUIRED instead of a token.'),
+    S('crmAgent','broker','deny','delete_repo DENIED','delete_repo / admin:org are blockedScopes → DENIED_BY_GCP_BROKER.'),
+   ]},
+  {id:'registry', name:'Agent Registry', sub:'discovery & governance',
+   desc:'Which identities and gateways are registered in us-central1.',
+   steps:[
+    S('crmAgent','registry','ok','SPIFFE AGENT_IDENTITY','crm-agent-id is registered.'),
+    S('testAr','registry','ok','RuntimeIdentity · SEC-07','test-agent-ar is registered (SEC-07 pass).'),
+    S('workspace','registry','ok','A2A_AGENT','The Google-managed Workspace Agent appears as an A2A_AGENT.'),
+    S('swpGw','registry','ok','linked gateway','crm-egress-swp-gw is linked to the registry.'),
+    F('testCr','warn','Not registered','test-agent-cr has no SPIFFE identity and no registry entry — it is the negative control.'),
+   ]},
+  {id:'evals', name:'Evaluation suites', sub:'security · cost · memory',
+   desc:'What the workspace eval scripts measure.',
+   steps:[
+    S('evalAgents','testAr','ok','Layer 1 EvalTask','agent-security-lab-eval: test-agent-ar 5.000 / 5.000.'),
+    S('evalAgents','broker','ok','Layer 2 SEC probes','SEC-01, SEC-05, SEC-06, SEC-07 pass.'),
+    S('evalCost','gemini','ok','cost lens','Compares gemini-3.5-flash-lite ($0.26/1k), 3.8-flash ($4.09/1k) and 3.1-pro-preview ($18.70/1k).'),
+    F('evalCost','info','Caching & memory','Context caching saved 65.8%; SQLite memory persistence cut prompt tokens by 65.8%. See the Evaluation tab below.'),
+   ]},
+];
+
+/* ------------------------------------------------------------------ svg helpers */
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
+const $=id=>document.getElementById(id);
+const COLORS={ok:'#38bdf8',token:'#fbbf24',deny:'#f87171',block:'#f87171',warn:'#fb923c',reply:'#34d399',consent:'#a78bfa',info:'#94a3b8'};
+
+function edgePt(n, tx, ty){
+  const dx=tx-n.x, dy=ty-n.y; const hw=n.w/2+4, hh=n.h/2+4;
+  const t=Math.min(hw/Math.abs(dx||1e-6), hh/Math.abs(dy||1e-6));
+  return [n.x+dx*t, n.y+dy*t];
+}
+function pathD(a,b,bend=0){
+  const A=NODES[a],B=NODES[b];
+  const len=Math.hypot(B.x-A.x,B.y-A.y);
+  const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+  const nx=-(B.y-A.y)/len, ny=(B.x-A.x)/len;
+  const cx=mx+nx*bend*len, cy=my+ny*bend*len;
+  const p0=edgePt(A,cx,cy), p2=edgePt(B,cx,cy);
+  return `M${p0[0].toFixed(1)},${p0[1].toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+}
+
+/* ------------------------------------------------------------------ draw static */
+const gZ=$('zones'), gS=$('statics'), gN=$('nodes'), gT=$('trails'), gFx=$('fx');
+ZONES.forEach(z=>{const g=el('g',{class:'zone '+z.cls},gZ);el('rect',{x:z.x,y:z.y,width:z.w,height:z.h,rx:14},g);const t=el('text',{x:z.x+12,y:z.y+(z.cls==='gcp'||z.cls==='outside'?20:18)},g);t.textContent=z.label;});
+// zone labels for outer zones sit at top; nudge inner content
+STATICS.forEach(([a,b,bend,cls])=>el('path',{d:pathD(a,b,bend),class:'static '+(cls||'')},gS));
+
+const nodeEls={};
+for(const [id,n] of Object.entries(NODES)){
+  const g=el('g',{class:'node'+(n.dim?' dim':'')+(n.dashed?' dashed':''),transform:`translate(${n.x-n.w/2},${n.y-n.h/2})`,'data-id':id},gN);
+  el('rect',{class:'box',width:n.w,height:n.h,rx:10},g);
+  el('rect',{class:'stripe',width:4,height:n.h-16,x:7,y:8,rx:2,fill:T[n.type]},g);
+  const small=n.w<=170;
+  const tag=el('text',{class:'tag',x:18,y:15},g);tag.textContent=n.tag;
+  const t=el('text',{class:'t',x:18,y:n.h/2+5},g);t.textContent=n.t;
+  const s=el('text',{class:'s',x:18,y:n.h/2+20},g);s.textContent=n.s;
+  if(small){t.setAttribute('style','font-size:12.5px');s.setAttribute('style','font-size:9.8px');}
+  g.addEventListener('click',()=>openDrawer(id));
+  nodeEls[id]=g;
+}
+// permanent gap flag on ALB
+const gf=el('text',{class:'gapflag',x:NODES.alb.x+NODES.alb.w/2-4,y:NODES.alb.y-NODES.alb.h/2-6,'text-anchor':'end'},gN);gf.textContent='⚠ no IAP / TLS';
+
+function openDrawer(id){
+  const n=NODES[id];$('dt').textContent=n.t;$('ds').textContent=n.s;
+  const dl=$('dd');dl.innerHTML='';
+  for(const [k,v] of Object.entries(n.d||{})){const dt=document.createElement('dt');dt.textContent=k;const dd=document.createElement('dd');dd.textContent=v;dl.append(dt,dd);}
+  $('drawer').style.display='block';
+}
+$('dx').onclick=()=>$('drawer').style.display='none';
+
+/* ------------------------------------------------------------------ animation engine */
+let speed=1, paused=false, runId=0, stepOnce=false;
+$('speed').oninput=e=>{speed=+e.target.value;$('speedV').textContent=speed.toFixed(1)+'×';};
+const sleep=(ms,id)=>new Promise(res=>{let left=ms,last=performance.now();
+  function tick(now){if(id!==runId)return res('cancel');if(!paused){left-=(now-last)*speed;}last=now;if(left<=0)return res();requestAnimationFrame(tick);}requestAnimationFrame(tick);});
+const waitGate=id=>new Promise(res=>{(function chk(){if(id!==runId)return res('cancel');if(!paused||stepOnce){stepOnce=false;return res();}requestAnimationFrame(chk);})();});
+
+function clearNodeStates(){Object.values(nodeEls).forEach(g=>g.classList.remove('active','hit-deny','hit-warn','hit-token','hit-reply','hit-consent','focus'));}
+function clearAll(){gT.innerHTML='';gFx.innerHTML='';clearNodeStates();}
+
+function pill(x,y,text,color){
+  const g=el('g',{class:'pill',opacity:0},gFx);
+  const r=el('rect',{stroke:color},g);const t=el('text',{x:0,y:0,'text-anchor':'middle','dominant-baseline':'central',fill:color},g);t.textContent=text;
+  const w=Math.max(40,text.length*6.6+16);r.setAttribute('x',-w/2);r.setAttribute('y',-11);r.setAttribute('width',w);r.setAttribute('height',22);
+  g.setAttribute('transform',`translate(${x},${y})`);
+  g.animate([{opacity:0},{opacity:1}],{duration:250,fill:'forwards'});
+  return g;
+}
+
+function hop(step,id,instant){
+  return new Promise(res=>{
+    const {from,to,kind,label}=step;const color=COLORS[kind];
+    const bend=BEND[from+'>'+to]??0;
+    const p=el('path',{d:pathD(from,to,bend),class:'flow','stroke':color,'marker-end':(kind==='block'?'':'url(#arr)')},gT);
+    const L=p.getTotalLength(); const end=kind==='block'?0.55:1;
+    nodeEls[from].classList.add('active');
+    const finish=()=>{
+      p.setAttribute('stroke-dasharray',`${L*end} ${L}`);p.setAttribute('stroke-dashoffset',0);
+      const hitCls={deny:'hit-deny',warn:'hit-warn',token:'hit-token',reply:'hit-reply',consent:'hit-consent'}[kind]||'active';
+      if(kind!=='block') nodeEls[to].classList.add(hitCls);
+      if(kind==='block'||kind==='deny'){
+        const pt=p.getPointAtLength(L*end - (kind==='deny'?6:0));
+        if(!instant){const c=el('circle',{cx:pt.x,cy:pt.y,r:6,class:'burst'},gFx);c.animate([{r:6,opacity:1},{r:30,opacity:0}],{duration:700,iterations:2});}
+        const x=el('text',{x:pt.x,y:pt.y+5,'text-anchor':'middle',fill:'#f87171','font-size':18,'font-weight':800},gT);x.textContent='✕';
+      }
+      if(!instant){const mid=p.getPointAtLength(L*end*0.5);pill(mid.x,mid.y-14,label,color);}
+      p.classList.add('trail');
+      res();
+    };
+    if(instant){finish();return;}
+    p.setAttribute('stroke-dasharray',`0 ${L}`);
+    const pkt=el('circle',{r:7,fill:color,class:'pkt'},gFx);
+    const dur=1500; let t=0,last=performance.now();
+    function frame(now){
+      if(id!==runId){pkt.remove();return res('cancel');}
+      if(!paused) t+= (now-last)*speed/dur; last=now;
+      const k=Math.min(t,1); const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; const at=L*end*e;
+      const pt=p.getPointAtLength(at); pkt.setAttribute('cx',pt.x);pkt.setAttribute('cy',pt.y);
+      p.setAttribute('stroke-dasharray',`${at} ${L}`);
+      if(k<1) requestAnimationFrame(frame); else {pkt.animate([{opacity:1},{opacity:0}],{duration:400}).onfinish=()=>pkt.remove(); finish();}
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function setNow(step){
+  const c=COLORS[step.kind]; const now=$('now'); now.style.borderLeftColor=c;
+  const badgeTxt={ok:'request',token:'credential',deny:'denied',block:'blocked',warn:'warning',reply:'response',consent:'consent',info:'note'}[step.kind];
+  $('nowLbl').innerHTML=`<span class="badge k-${step.kind}">${badgeTxt}</span><span></span>`;
+  $('nowLbl').lastChild.textContent=step.label||'';
+  $('nowTxt').textContent=step.text||'';
+}
+function stepTitle(s){return s.focus?`${s.label}`:`${NODES[s.from].t} → ${NODES[s.to].t}${s.label?' · '+s.label:''}`;}
+
+let current=null, curIdx=0;
+function renderSteps(sc){
+  const ol=$('steps');ol.innerHTML='';
+  sc.steps.forEach((s,i)=>{const li=document.createElement('li');li.innerHTML=`<span class="n k-${s.kind}">${i+1}</span><span></span>`;li.lastChild.textContent=stepTitle(s);li.onclick=()=>play(sc.id,i,false);ol.appendChild(li);});
+}
+function markStep(i){[...$('steps').children].forEach((li,j)=>{li.classList.toggle('done',j<i);li.classList.toggle('cur',j===i);if(j===i){const ol=li.parentElement;const top=li.offsetTop-ol.offsetTop;if(top<ol.scrollTop||top>ol.scrollTop+ol.clientHeight-30)ol.scrollTop=top-40;}});}
+
+async function runStep(s,id,instant){
+  if(s.focus){
+    s.focus.forEach(f=>{nodeEls[f].classList.add('focus', s.kind==='warn'?'hit-warn':'active');});
+    if(!instant){const n=NODES[s.focus[0]];pill(n.x,n.y-n.h/2-16,s.label,COLORS[s.kind]);}
+    return;
+  }
+  return hop(s,id,instant);
+}
+
+async function play(scId,startIdx=0,tour=false){
+  const id=++runId; const sc=SCENARIOS.find(s=>s.id===scId); current=sc;
+  document.querySelectorAll('.scn').forEach(b=>b.classList.toggle('active',b.dataset.id===scId));
+  $('scTitle').textContent=sc.name;$('scDesc').textContent=sc.desc;renderSteps(sc);clearAll();
+  for(let i=0;i<startIdx;i++) await runStep(sc.steps[i],id,true);
+  for(let i=startIdx;i<sc.steps.length;i++){
+    curIdx=i;
+    if(await waitGate(id)==='cancel')return;
+    // fade previous pills & focus pulses
+    gFx.querySelectorAll('.pill').forEach(p=>p.animate([{opacity:1},{opacity:0}],{duration:300,fill:'forwards'}).onfinish=()=>p.remove());
+    Object.values(nodeEls).forEach(g=>g.classList.remove('focus'));
+    markStep(i);setNow(sc.steps[i]);
+    if(await runStep(sc.steps[i],id,false)==='cancel')return;
+    if(await sleep(sc.steps[i].focus?2600:1500,id)==='cancel')return;
+  }
+  curIdx=sc.steps.length; markStep(sc.steps.length);
+  if(tour){
+    const k=SCENARIOS.indexOf(sc);
+    if(k<SCENARIOS.length-1){ if(await sleep(1200,id)==='cancel')return; play(SCENARIOS[k+1].id,0,true);}
+    else { $('nowLbl').textContent='Tour complete ✓'; $('nowTxt').textContent='Pick any flow to replay it, or click boxes for details.'; }
+  }
+}
+
+/* ------------------------------------------------------------------ controls */
+const list=$('scnList');
+SCENARIOS.forEach(sc=>{const b=document.createElement('button');b.className='scn';b.dataset.id=sc.id;b.innerHTML=`<span></span><small></small>`;b.firstChild.textContent=sc.name;b.lastChild.textContent=sc.sub;b.onclick=()=>{setPaused(false);play(sc.id,0,false);};list.appendChild(b);});
+function setPaused(v){paused=v;$('playBtn').textContent=v?'▶ Play':'❚❚ Pause';}
+$('playBtn').onclick=()=>{if(!current){play(SCENARIOS[0].id);return;}setPaused(!paused);};
+$('tourBtn').onclick=()=>{setPaused(false);play(SCENARIOS[0].id,0,true);};
+$('nextBtn').onclick=()=>{if(!current)return;if(!paused)setPaused(true);stepOnce=true;};
+$('prevBtn').onclick=()=>{if(!current)return;setPaused(true);play(current.id,Math.max(0,curIdx-1),false).then(()=>{});stepOnce=true;};
+$('resetBtn').onclick=()=>{runId++;current=null;clearAll();setPaused(false);$('steps').innerHTML='';$('scTitle').textContent='—';$('scDesc').textContent='';$('nowLbl').textContent='Pick a flow or press “Full tour”.';$('nowTxt').textContent='';document.querySelectorAll('.scn').forEach(b=>b.classList.remove('active'));};
+
+/* ------------------------------------------------------------------ tabs + chart */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id===t.dataset.p));
+  if(t.dataset.p==='p-eval') growBars();
+});
+const COST=[['gemini-3.5-flash-lite',0.26],['gemini-3.8-flash',4.09],['gemini-3.1-pro-preview',18.70]];
+const bars=$('bars'), tip=$('tip');
+COST.forEach(([m,v])=>{const r=document.createElement('div');r.className='bar';r.innerHTML=`<span></span><div class="track"><div class="fill" data-v="${v}"></div></div><span class="val">$${v.toFixed(2)}</span>`;r.firstChild.textContent=m;
+  r.onmousemove=e=>{tip.style.display='block';tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.textContent=`${m}: $${v.toFixed(2)} per 1k requests (${(v/0.26).toFixed(1)}× flash-lite)`;};
+  r.onmouseleave=()=>tip.style.display='none';bars.appendChild(r);});
+function growBars(){const max=18.70;bars.querySelectorAll('.fill').forEach(f=>{f.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.width=Math.max(1.2,(+f.dataset.v/max)*100)+'%';}));});}
+
+/* autoplay */
+setTimeout(()=>play(SCENARIOS[0].id,0,true),700);
+</script>
+</body>
+</html>

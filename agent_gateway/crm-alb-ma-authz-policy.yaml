@@ -1,0 +1,11 @@
+name: projects/geagent-sasfar-ooc/locations/us-central1/authzPolicies/crm-alb-ma-authz-policy
+target:
+  loadBalancingScheme: EXTERNAL_MANAGED
+  resources:
+    - projects/geagent-sasfar-ooc/regions/us-central1/forwardingRules/crm-agent-id-fr
+policyProfile: CONTENT_AUTHZ
+action: CUSTOM
+customProvider:
+  authzExtension:
+    resources:
+      - projects/geagent-sasfar-ooc/locations/us-central1/authzExtensions/crm-alb-ma-extension

@@ -1,0 +1,20 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, point it at this repo.
+services:
+  - type: web
+    name: github-mcp
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: MCP_AUTH_TOKEN
+        generateValue: true   # Render creates a random secret; copy it from the dashboard
+      - key: GITHUB_TOKEN
+        sync: false           # you paste this in the dashboard during setup
+      - key: ALLOW_WRITES
+        value: "false"

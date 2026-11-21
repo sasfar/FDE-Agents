@@ -1,0 +1,5 @@
+description: "Agent-to-Anywhere Egress Gateway governing outbound tool/MCP calls from registered agents"
+googleManaged:
+  governedAccessPath: AGENT_TO_ANYWHERE
+registries:
+  - //agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1

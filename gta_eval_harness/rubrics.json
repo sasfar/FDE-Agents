@@ -1,0 +1,98 @@
+[
+  {
+    "criterion_id": "platform-split-math",
+    "name": "Console & PC Platform Split Math",
+    "criterion": "Accurately models console install bases (PS5 75M @ 38% attach, Xbox Series 34M @ 22% attach) and quantifies staggered vs. Day-1 PC revenue impact ($0.8B-$1.2B).",
+    "rating_scale": {
+      "1": "Omits platform install bases/attach rates or uses fabricated numbers.",
+      "2": "Mentions consoles/PC qualitatively with no install base or revenue math.",
+      "3": "Uses some benchmark figures but misses PC deferral or platform fee differences.",
+      "4": "Accurately models console vs. PC units and fees with minor omissions.",
+      "5": "Precisely quantifies PS5/Xbox/PC split, attach rates, and platform fee impact."
+    }
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "name": "Online vs. Offline Monetization Split",
+    "criterion": "Separates upfront unit revenue from recurring GTA+ ($7.99/mo) and Shark Card monetization, referencing the GTA V 55%/45% benchmark.",
+    "rating_scale": {
+      "1": "Does not distinguish upfront unit sales from recurring online revenue.",
+      "2": "Mentions online mode vaguely without pricing or attach assumptions.",
+      "3": "Separates upfront vs. online revenue but lacks GTA+ or Shark Card figures.",
+      "4": "Quantifies upfront vs. online mix with GTA+ pricing and recurring lift.",
+      "5": "Thoroughly models upfront ASP + Day-1 GTA+ + Shark Cards and compares to GTA V."
+    }
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "name": "Marketing & Pricing Lever ROI",
+    "criterion": "Evaluates incremental net profit (not just gross units) of extreme marketing spend, hardware bundles, or 72-hour early-access pricing.",
+    "rating_scale": {
+      "1": "Ignores marketing/pricing cost vs. ROI trade-offs.",
+      "2": "Assumes more marketing automatically wins without checking net profit.",
+      "3": "Mentions marketing cost or ASP lift qualitatively without net math.",
+      "4": "Computes incremental revenue vs. cost for at least one lever.",
+      "5": "Explicitly compares net profit ROI across marketing spend, bundles, and pricing tiers."
+    }
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "name": "Net Operating Profit Derivation",
+    "criterion": "Explicitly derives Year-1 Net Operating Profit: Gross Revenue - Platform Fee (30% or 20%) - $1.75B Dev/Marketing Budget.",
+    "rating_scale": {
+      "1": "No net operating profit calculation or wrong formula.",
+      "2": "States gross revenue only; omits platform cut or $1.75B budget.",
+      "3": "Includes platform fees or budget, but calculation is incomplete.",
+      "4": "Correctly derives net profit with minor rounding or clarity gaps.",
+      "5": "Shows exact step-by-step Gross -> Platform Fee -> $1.75B Budget -> Net Profit math."
+    }
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "name": "Actionable Growth Lever Ranking",
+    "criterion": "Ranks concrete future levers to maximize GTA 6 sales (Day-1 PC, Early Access Deluxe, Day-1 Online/GTA+, Bundles, UGC Creator Economy).",
+    "rating_scale": {
+      "1": "Provides no actionable recommendations or ranking.",
+      "2": "Lists generic marketing advice unrelated to gaming economics.",
+      "3": "Lists relevant levers without ranking them by impact.",
+      "4": "Ranks levers clearly with reasonable strategic justification.",
+      "5": "Provides a crisp, ROI-ranked playbook explaining why top levers win."
+    }
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "name": "Downside Risk & Cannibalization Analysis",
+    "criterion": "Accounts for F2P time-share competition (Fortnite/Roblox/Valorant), $1.75B cost hurdle (6.6x GTA V), and staggered PC deferral.",
+    "rating_scale": {
+      "1": "Purely optimistic; ignores all downside risks.",
+      "2": "Mentions generic competition without benchmark specifics.",
+      "3": "Identifies 1 downside risk accurately.",
+      "4": "Covers 2+ specific risks from the benchmark.",
+      "5": "Integrates F2P competition, $1.75B recoupment hurdle, and PC deferral into the forecast."
+    }
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "name": "Groundedness to Benchmark KB",
+    "criterion": "All cited benchmark figures (42M, $76, $4.15B, $1.155B, $1.75B, 109M console base) match datasets/gaming_market_kb.md without hallucination.",
+    "rating_scale": {
+      "1": "Contradicts KB figures or hallucinates benchmark numbers.",
+      "2": "Uses mostly generic/guessed numbers instead of KB figures.",
+      "3": "Mixes some KB figures with ungrounded estimates without labeling assumptions.",
+      "4": "Faithful to KB figures with clear labeling of scenario assumptions.",
+      "5": "100% grounded in KB figures with transparent scenario derivations."
+    }
+  },
+  {
+    "criterion_id": "executive-readability",
+    "name": "Executive Structure & Readability",
+    "criterion": "Presents a clean summary table, clear numbers, and a decisive studio recommendation.",
+    "rating_scale": {
+      "1": "Disorganized wall of text; hard to extract the prediction.",
+      "2": "Weak structure; key numbers buried in prose.",
+      "3": "Readable bullets, but lacks a comparison table.",
+      "4": "Well-structured sections with clear forecast callouts.",
+      "5": "Executive-ready brief with a summary table and crisp verdict."
+    }
+  }
+]

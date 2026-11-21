@@ -1,0 +1,10 @@
+name: projects/geagent-sasfar-ooc/locations/us-central1/authzPolicies/crm-ma-authz-policy
+target:
+  resources:
+    - projects/geagent-sasfar-ooc/locations/us-central1/agentGateways/crm-ingress-gw
+policyProfile: CONTENT_AUTHZ
+action: CUSTOM
+customProvider:
+  authzExtension:
+    resources:
+      - projects/geagent-sasfar-ooc/locations/us-central1/authzExtensions/crm-ma-extension

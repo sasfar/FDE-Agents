@@ -1,0 +1,842 @@
+[
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report accurately models the console vs. PC revenue impact and platform fee differences, but omits the specific individual PS5 (75M @ 38%) and Xbox (34M @ 22%) install base and attach rate breakdown."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report accurately models the console vs. PC revenue impact and platform fee differences, but relies on the benchmark's combined base case instead of explicitly calculating the individual PS5 (75M @ 38%) and Xbox (34M @ 22%) splits."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 4,
+    "reason": "The agent accurately models the console vs. PC revenue and platform fee impacts, but relies on the benchmark's combined base case instead of explicitly calculating the individual PS5 (75M @ 38%) and Xbox (34M @ 22%) platform splits."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 1,
+    "reason": "The report completely omits the PS5 and Xbox Series install bases, their respective attach rates, and the PC platform split math or deferred revenue impact."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 1,
+    "reason": "The report completely omits the console install bases (PS5 75M, Xbox 34M), their respective attach rates, and the quantified PC staggered revenue impact of $0.8B-$1.2B."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 1,
+    "reason": "The report completely omits the specific PS5 and Xbox Series install bases, their respective attach rates, and any quantification of the PC platform deferral impact."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 1,
+    "reason": "The report completely omits the console install bases, attach rates, and PC revenue impact, applying only a generic 30% platform cut."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 1,
+    "reason": "The report completely omits the console install bases, specific attach rates for PS5 and Xbox, and the PC revenue impact."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 1,
+    "reason": "The report completely omits any modeling of the PS5 and Xbox Series install bases, attach rates, or the revenue impact of a staggered PC release."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report accurately models the combined 109M console install base, 30% platform fees, and the $0.8B\u2013$1.2B PC revenue deferral, but omits the explicit individual breakdown of PS5 (75M @ 38%) and Xbox (34M @ 22%) attach rates."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report accurately models the combined console install base (109M), the 30% platform fee, and the $0.8B\u2013$1.2B PC revenue deferral, but groups the consoles together rather than breaking down the individual PS5 (38%) and Xbox (22%) attach rates."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report accurately quantifies the combined console install base (109M), the 30% platform fee, and the $0.8B\u2013$1.2B PC revenue deferral, but omits the explicit individual breakdown of PS5 and Xbox Series install bases and attach rates."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report precisely models the console install bases and attach rates (PS5 38%, Xbox 22%), quantifies the $0.8B\u2013$1.2B PC deferral impact, and accurately calculates the net margin after the 30% platform fee."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report precisely models the 109M combined console install base with PS5 (38%) and Xbox (22%) attach rates, and accurately quantifies the $0.8B\u2013$1.2B PC revenue deferral and its net margin impact after platform fees."
+  },
+  {
+    "criterion_id": "platform-split-math",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report precisely quantifies the PS5 and Xbox attach rates, the 109M combined console install base, and accurately models the $0.8B\u2013$1.2B PC revenue deferral including its net margin impact after the 30% platform cut."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to break down GTA+ ($7.99/mo) and Shark Card figures individually, and does not reference the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to detail specific GTA+ pricing ($7.99/mo), Shark Card figures, or reference the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to break down the specific GTA+ ($7.99/mo) or Shark Card figures, and does not reference the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report thoroughly models the upfront ASP ($76) and unit sales, quantifies Day-1 GTA+ ($7.99/mo at 12% attach) and Shark Card revenue, and compares the split to the historical GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report thoroughly models the upfront ASP ($76) and Day-1 GTA+ ($7.99/mo with 12% attach) and Shark Card monetization, and directly compares the split to the historical GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report thoroughly models the upfront ASP and Day-1 GTA+ ($7.99/mo at 12% attach) and Shark Card monetization, comparing the results directly to the historical GTA V 55%/45% split benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to mention GTA+ pricing, Shark Cards, or the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to mention GTA+ pricing, Shark Cards, or the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report separates upfront unit sales from online revenue but fails to break down GTA+ pricing, Shark Cards, or reference the GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report thoroughly separates upfront unit sales from recurring revenue, explicitly referencing the GTA V 55%/45% benchmark, GTA+ pricing ($7.99/mo), Shark Cards, and the GTA 6 Base Case figures."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report thoroughly separates upfront unit sales ($70-$100 ASP) from recurring GTA+ ($7.99/mo) and Shark Cards, explicitly referencing the GTA V 55%/45% benchmark and quantifying the Year 1 Base Case split."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report thoroughly separates upfront unit revenue ($70-$100 ASP) from recurring GTA+ ($7.99/mo) and Shark Cards, explicitly referencing the GTA V 55%/45% benchmark and quantifying the GTA 6 Base Case mix."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report quantifies the upfront vs. online revenue mix and includes GTA+ ($7.99/mo) and Shark Cards, but fails to reference or compare the split to the historical GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report quantifies the upfront unit revenue versus online recurring revenue and includes the GTA+ $7.99/mo pricing, but it fails to reference the historical GTA V 55%/45% monetization benchmark."
+  },
+  {
+    "criterion_id": "online-vs-offline-ltv",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report quantifies the upfront vs. online mix and includes GTA+ pricing ($7.99/mo) and Shark Cards, but fails to reference or compare the split to the historical GTA V 55%/45% benchmark."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report computes incremental revenue and net operating profit for the platform distribution and fee lever (Strategy B vs. Strategy A) but does not compare across marketing spend, bundles, and pricing tiers."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report computes incremental net operating profit and platform fee costs for the distribution lever (Console-First vs. Day-1 PC with Direct Launcher) but does not compare across marketing spend, bundles, or pricing tiers."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report computes the incremental net profit and platform fee cost savings for the Day-1 PC launcher lever, but fails to evaluate or compare other specific marketing levers like extreme spend, hardware bundles, or early-access pricing tiers."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report computes the incremental net profit impact of the Day-1 GTA+ and Online pricing lever ($1.155B net profit) versus the delayed launch scenario (which drops net profit toward $0.245B), but does not compare ROI across marketing spend or hardware bundles."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report computes the net profit impact of the Day-1 Online monetization lever ($1.155B net profit) versus the delayed launch scenario (which narrows net profit to $0.245B), but it does not compare across multiple distinct levers like marketing spend or bundles."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report computes the net profit impact of the Day-1 Online monetization lever ($1.155B net profit) versus the delayed launch scenario (which narrows net profit toward $0.245B), but it does not compare across multiple distinct levers like marketing spend or hardware bundles."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report explicitly calculates and compares the Year-1 Net Operating Profit ROI for both the extreme marketing spend/bundle lever and the early-access pricing tier lever."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report explicitly calculates and compares the Year-1 Net Operating Profit ROI for both the extreme marketing/bundle lever and the early-access pricing tier lever, factoring in platform fees and recoupment costs."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report explicitly computes and compares the Year-1 Net Operating Profit for both the extreme marketing spend (Lever A) and the early-access pricing tier (Lever B), demonstrating a complete quantitative ROI analysis."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report qualitatively mentions the $1.75B development and marketing recoupment hurdle and the $70\u2013$100 ASP, but fails to compute or compare incremental net profit ROI for any specific marketing, bundle, or pricing levers."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report qualitatively mentions the ASP lift and the $1.75B development/marketing recoupment hurdle but does not compute incremental net profit math for specific marketing, bundle, or pricing levers."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 1,
+    "reason": "The report completely ignores marketing and pricing lever ROI trade-offs, failing to analyze or compute net profit impacts for extreme marketing spend, hardware bundles, or early-access pricing."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report computes incremental revenue and net operating margin for multiple levers (such as the Deluxe pricing mix and closing the PC release gap) but does not explicitly compare marketing spend or hardware bundles."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report computes incremental net operating profit for closing the PC release gap ($0.56B\u2013$0.84B net from $0.8B\u2013$1.2B gross) but does not explicitly compare varying marketing spend levels or hardware bundles."
+  },
+  {
+    "criterion_id": "marketing-roi-lift",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report computes incremental net operating profit for the PC release gap lever ($0.56B\u2013$0.84B net after platform cuts) but does not explicitly compare ROI across marketing spend or hardware bundles."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report shows exact step-by-step math deriving the Net Operating Profit from Gross Revenue, subtracting the platform fees (30% and 20% blended) and the $1.75B budget for both scenarios."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report shows exact step-by-step math deriving Net Operating Profit from Gross Revenue, subtracting the platform fees (30% and 20%) and the $1.75B budget for both scenarios."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report shows exact step-by-step math deriving Net Operating Profit from Gross Revenue, subtracting the platform fees (30% and 20% respectively) and the $1.75B budget for both scenarios."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report shows the exact step-by-step math deriving the Year-1 Net Operating Profit of $1.155B from the $4.15B Gross Revenue, subtracting the 30% platform fee ($1.245B) and the $1.75B budget."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report shows the exact step-by-step derivation of the Year-1 Net Operating Profit for the Base Case: $4.15B Gross - $1.245B Platform Fee (30%) - $1.75B Budget = $1.155B Net Profit."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report provides the exact step-by-step derivation of Year-1 Net Operating Profit for the Base Case: $4.15B Gross - $1.245B Platform Cut (30%) - $1.75B Recoupment = $1.155B Net Operating Profit."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report provides exact step-by-step math deriving the Year-1 Net Operating Profit for both levers, correctly applying the 30% platform fee and the respective budgets ($2.05B and $1.75B)."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 5,
+    "reason": "The agent provides exact, step-by-step calculations deriving Year-1 Net Operating Profit for both levers, correctly applying the 30% platform fee and the $1.75B budget (adjusted to $2.05B for Lever A)."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report provides a flawless, step-by-step derivation of Year-1 Net Operating Profit for both levers, explicitly applying the 30% platform fee and the respective development/marketing budgets to the gross revenues."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report provides the exact step-by-step derivation of the Year-1 Base Case Net Operating Profit ($1.155B) by subtracting the 30% platform fee ($1.245B) and the dev/marketing budget ($1.75B) from the total gross revenue ($4.15B)."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report explicitly and accurately derives the Year-1 Net Operating Profit for the Base Case ($4.15B Gross - $1.245B Platform Fee - $1.75B Budget = $1.155B Net) using exact step-by-step figures."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report correctly includes all the exact figures for the Base Case derivation (Gross, Platform Fee, Budget, and Net Profit), but presents them across separate sections rather than in a single, step-by-step mathematical equation."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report provides exact step-by-step math deriving Net Operating Profit from Gross Revenue, subtracting the 30% platform cut and the $1.75B budget across all four scenarios."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report shows the exact step-by-step math deriving Net Operating Profit from Gross Revenue, subtracting the 30% platform cut and the $1.75B budget across all scenarios."
+  },
+  {
+    "criterion_id": "net-margin-derivation",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report shows the exact step-by-step derivation of Net Operating Profit from Gross Revenue, subtracting the 30% platform cut and the $1.75B budget across all four scenarios in a clear, structured table."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 1,
+    "reason": "The agent report completely fails to address the growth-lever-ranking criterion, as it only compares the two platform scenarios without listing or ranking any of the specified future growth levers."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 1,
+    "reason": "The Agent Report focuses entirely on comparing the two platform scenarios and completely fails to list or rank the specified growth levers (such as Early Access Deluxe, Bundles, or UGC Creator Economy)."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 1,
+    "reason": "The agent report compares the two platform scenarios but completely fails to list or rank the specified growth levers (Early Access Deluxe, Day-1 Online/GTA+, Bundles, UGC Creator Economy)."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 1,
+    "reason": "The report fails to provide any actionable recommendations or ranking of the specified growth levers, focusing instead on scenario analysis and F2P risks."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 1,
+    "reason": "The report fails to list or rank the specified growth levers (such as Day-1 PC, Early Access Deluxe, Bundles, or UGC Creator Economy), providing no actionable recommendations or ranking."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 1,
+    "reason": "The report does not provide any actionable recommendations or ranking of the specified growth levers to maximize GTA 6 sales."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report clearly ranks and mathematically justifies the two scenario levers (Early Access Deluxe vs. Marketing Blitz/Bundles), but does not expand into a comprehensive ranking of all five industry levers specified in the criterion."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report clearly ranks and justifies the evaluated levers (Early Access Deluxe vs. Marketing/Bundles) with precise financial calculations, though it does not cover the full list of potential levers like Day-1 PC or UGC."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report clearly ranks and compares the two scenario-specific levers with precise financial calculations and strategic justification, though it does not address the broader list of industry levers."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 1,
+    "reason": "The agent report fails to provide any ranking or actionable recommendations for the specified growth levers, focusing instead on analyzing the UGC scenario constraints."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 1,
+    "reason": "The report focuses entirely on analyzing the UGC scenario against the benchmark data and does not provide any ranking or actionable recommendations for the specified growth levers."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 1,
+    "reason": "The report fails to list, rank, or provide actionable recommendations for the specified growth levers, focusing instead on analyzing the constraints of the UGC scenario."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report provides a crisp, ROI-ranked playbook of the top 3 levers with clear strategic justifications and quantitative impact estimates."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report provides a crisp, ROI-ranked playbook of the top 3 growth levers with clear strategic justifications and concrete financial impacts grounded in the benchmark data."
+  },
+  {
+    "criterion_id": "growth-lever-ranking",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report provides a crisp, ROI-ranked playbook of the top 3 levers with clear strategic justifications and quantitative net profit impacts grounded in the benchmark data."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report accurately integrates the $1.75B recoupment hurdle and the deferred PC revenue into its forecast, but fails to account for F2P time-share competition."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report accurately integrates the $1.75B cost hurdle and the staggered PC deferral into its financial models, but fails to account for F2P time-share competition."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report accurately incorporates the $1.75B recoupment hurdle and the financial impact of the staggered PC deferral, but fails to address or integrate F2P time-share competition into its forecast."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report accurately covers the F2P competition and the $1.75B recoupment hurdle, but fails to integrate the staggered PC deferral risk into its analysis."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report accurately covers the $1.75B recoupment hurdle and F2P competition with specific benchmark metrics, but fails to integrate the staggered PC launch deferral risk."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report successfully covers the F2P competition and the $1.75B recoupment hurdle, but fails to integrate the staggered PC deferral risk into its analysis."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report accurately incorporates the $1.75B cost recoupment hurdle and analyzes the margin-dilution risk of the marketing spend, but fails to address the other benchmark downside risks such as F2P competition and the staggered PC launch."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report accurately incorporates the $1.75B cost recoupment hurdle into its financial calculations, but fails to address the other benchmark downside risks such as F2P competition and the staggered PC launch."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report accurately incorporates the $1.75B cost recoupment hurdle into its calculations but fails to address the staggered PC launch or F2P time-share competition."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report comprehensively integrates all three benchmark downside risks: F2P competition (Roblox/Fortnite/Valorant), the $1.75B recoupment hurdle, and the staggered PC deferral ($0.8B\u2013$1.2B deferred to Year 2) into its analysis of the UGC economy."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report fully integrates all three benchmark downside risks: F2P time-share competition (Fortnite/Roblox/Valorant), the $1.75B recoupment hurdle, and the staggered PC launch deferring $0.8B\u2013$1.2B into Year 2."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report comprehensively integrates all three benchmark downside risks: F2P competition (Fortnite/Roblox/Valorant), the $1.75B recoupment hurdle, and the staggered PC launch deferring $0.8B\u2013$1.2B to Year 2."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 4,
+    "reason": "The report accurately covers and integrates the $1.75B cost hurdle and the staggered PC deferral into its forecast, but fails to address the F2P time-share competition risk."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 4,
+    "reason": "The report accurately integrates the $1.75B cost recoupment hurdle and the staggered PC launch deferral into its forecast, but fails to account for F2P time-share competition from Fortnite, Roblox, or Valorant."
+  },
+  {
+    "criterion_id": "downside-risk-rigor",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 4,
+    "reason": "The report accurately addresses the $1.75B cost hurdle and the staggered PC deferral risks, but fails to mention or integrate F2P time-share competition from Fortnite, Roblox, or Valorant."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report is 100% grounded in the KB, accurately citing all required benchmark figures (42M, $76, $4.15B, $1.155B, and $1.75B) and flawlessly deriving Strategy B's figures from the KB's stated PC revenue deferral."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all required figures (42M, $76, $4.15B, $1.155B, $1.75B) and providing transparent, mathematically precise derivations for the PC launch scenario."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB, accurately citing all required figures (42M, $76, $4.15B, $1.155B, $1.75B) and transparently deriving the PC scenario using KB-provided ranges."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB, accurately citing all relevant figures including 42M, $76, $4.15B, $1.155B, and $1.75B without any hallucinations."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB, accurately citing all key figures including 42M, $76, $4.15B, $1.155B, and $1.75B without any hallucinations."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all key figures ($4.15B, 42M, $76, $1.155B, $1.75B, etc.) without any hallucinations, and transparently deriving the 30% gross revenue lift."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately utilizing the base case figures (42M units, $76 ASP, $1.75B recoupment, and $0.96B online revenue) to perform precise and transparent scenario calculations."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB, accurately using and referencing all base figures (42M units, $76 ASP, $1.75B budget, $0.96B online revenue, and $1.155B net profit) to derive the scenario calculations."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB figures, with accurate calculations and transparent derivations of both scenarios."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all required figures (42M, $4.15B, $1.155B, $1.75B, 109M console base) with zero hallucinations or ungrounded estimates."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 5,
+    "reason": "The agent report is 100% grounded in the benchmark KB, accurately citing all key figures including 42M units, $4.15B gross, $1.155B net, $1.75B budget, and the 109M console base without any hallucinations."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all required figures (42M, $4.15B, $1.155B, $1.75B, 109M, etc.) with zero hallucinations and transparently explaining how the UGC scenario maps to the KB's constraints."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all required figures (42M, $76, $4.15B, $1.155B, $1.75B, and 109M console base) and transparently deriving the optimal strategy scenario."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB figures, with all scenario derivations for the optimal playbook mathematically consistent and transparently explained."
+  },
+  {
+    "criterion_id": "groundedness-to-kb",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report is 100% grounded in the benchmark KB, accurately citing all key figures (42M, $76, $4.15B, $1.155B, $1.75B, and 109M console base) with transparent derivations for the optimal scenario."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report features highly readable bullet points and a clear, decisive recommendation, but it lacks a structured comparison table to summarize the two scenarios side-by-side."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report features highly readable bullet points and a clear, decisive verdict, but it lacks a structured comparison summary table."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report features well-structured sections and clear bulleted numbers with a decisive verdict, but it lacks a summary comparison table."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report is structured with readable bullet points and clear numbers, but it lacks a comparison summary table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report is well-structured with readable bullets and clear numbers, but it lacks both a summary comparison table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report is well-structured with readable bullets and clear numbers, but it lacks a summary comparison table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report is well-structured with clear bullets and a decisive conclusion, but it lacks a summary comparison table as required for a higher score."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report is highly readable with clear sections and a decisive verdict, but it lacks a structured comparison table to summarize the two levers."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report is well-structured with clear bullet points and a decisive conclusion, but it lacks a summary comparison table as required for higher scores."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 1,
+    "score": 3,
+    "reason": "The report is well-structured with clear, readable bullet points, but it lacks both a summary comparison table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 2,
+    "score": 3,
+    "reason": "The report is well-structured with clear bullet points, but it lacks both a summary comparison table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "pass": 3,
+    "score": 3,
+    "reason": "The report is well-structured with clear bullet points, but it lacks a summary comparison table and a decisive studio recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 1,
+    "score": 5,
+    "reason": "The report is an executive-ready brief featuring a comprehensive summary table, clear financial forecasts, and a highly structured, decisive strategic playbook recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 2,
+    "score": 5,
+    "reason": "The report is highly professional and executive-ready, featuring a clean, comprehensive comparison table of all scenarios and a clear, prioritized ranking of the top ROI levers that serves as a decisive recommendation."
+  },
+  {
+    "criterion_id": "executive-readability",
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "pass": 3,
+    "score": 5,
+    "reason": "The report is highly professional and executive-ready, featuring a clean markdown summary table comparing all requested scenarios, clear financial numbers, and a decisive, well-justified optimal strategy recommendation."
+  }
+]

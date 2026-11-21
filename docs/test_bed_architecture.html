@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FDE-Agents End-to-End Test Bed Architecture (Verified Flow 1 &amp; Flow 2)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #34d399;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 24px 64px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .container { max-width: 1240px; margin: 0 auto; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }
+    h1 { margin: 0; font-size: 1.75rem; color: #f8fafc; }
+    .subtitle { margin: 6px 0 0; color: var(--muted); font-size: 0.95rem; }
+    .btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn:hover { opacity: 0.9; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    h2 { margin: 0 0 14px; font-size: 1.25rem; color: var(--accent); }
+    h3 { margin: 20px 0 10px; font-size: 1.05rem; color: var(--green); }
+    .mermaid {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 8px; }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--accent); font-weight: 600; background: rgba(15, 23, 42, 0.5); }
+    code {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.84rem;
+      color: #bae6fd;
+      word-break: break-all;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-spiffe { background: rgba(52, 211, 153, 0.18); color: var(--green); }
+    .badge-legacy { background: rgba(251, 191, 36, 0.18); color: var(--amber); }
+    .badge-ext { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
+    @media print {
+      body { background: #ffffff; color: #0f172a; padding: 0; }
+      section { background: #ffffff; border: 1px solid #cbd5e1; break-inside: avoid; }
+      .btn { display: none; }
+      code { background: #f1f5f9; color: #0f172a; }
+      th { background: #f8fafc; color: #0f172a; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>FDE-Agents End-to-End Test Bed Architecture</h1>
+        <p class="subtitle">Project: <code>geagent-sasfar-ooc</code> (<code>us-central1</code>) &bull; Verified Flow 1 (Cloud Run &rarr; SWP) &amp; Flow 2 (Agent Engine &rarr; Railway) with GitHub 3LO</p>
+      </div>
+      <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+    </header>
+
+    <section>
+      <h2>1. Top-Down Test Bed Topology (Current Live State)</h2>
+      <div class="mermaid">
+flowchart TB
+    subgraph EXT["Zone A: Outside Google Cloud"]
+        MAC["Desktop Agent: local-mac-agent\nmacOS localhost:8090\nA2A + local MCP tools"]
+        BROWSER["User Browser\nGitHub & CRM 3LO Consent"]
+        RAILWAY["Railway MCP Server (Bun Function)\ngh-mcp-server-production.up.railway.app/mcp\nTools: gh_whoami, gh_list_my_repos, gh_list_issues, gh_get_poisoned_issue"]
+        GITHUB_OAUTH["GitHub OAuth App\nClient ID: Ov23lichygy8VMPnfuLZ"]
+        GITHUB_API["GitHub REST API\napi.github.com"]
+    end
+
+    subgraph EDGE["Zone B: GCP Edge & Ingress Security (us-central1)"]
+        ALB["External Application Load Balancer\nhttp://35.209.113.245"]
+        ALB_MA["Model Armor AuthzExtension\ncrm-alb-ma-extension\ntemplate: crm-guardrail-tpl | failOpen: false"]
+        INGRESS_GW["Agent Gateway Ingress\ncrm-ingress-gw (CLIENT_TO_AGENT)"]
+    end
+
+    subgraph GCP_AGENTS["Zone C: GCP Agent Runtimes & Mock Tools (us-central1)"]
+        CR_ID["crm-agent-id (Cloud Run rev 00009-zv9)\nVPC: agent-lab-vpc / agent-lab-subnet\nIngress: internal-and-cloud-load-balancing\nIdentity: SPIFFE AGENT_IDENTITY"]
+        AR["test-agent-ar (Vertex AI Agent Engine)\nReasoningEngine 8894320367376531456\nIdentity: SPIFFE RuntimeIdentity"]
+        CR_LEGACY["test-agent-cr (Cloud Run)\nIngress: all\nIdentity: Legacy Compute SA (Negative Control)"]
+        CRM_MOCK["crm-tool-mock (Cloud Run)\nMock CRM + OAuth /authorize & /oauth/token"]
+    end
+
+    subgraph GCP_EGRESS["Zone D: Egress Proxy, Gateways, Identity & Evals"]
+        SWP["Flow 1: Secure Web Proxy (crm-swp-egress)\n10.10.0.40:80 in agent-lab-vpc\ncrm-swp-policy: allow-mcp-and-crm"]
+        SWP_GW["selfManaged AgentGateway\ncrm-egress-swp-gw"]
+        MANAGED_GW["Flow 2: googleManaged AgentGateway\ncrm-egress-gw (AGENT_TO_ANYWHERE)\nModel Armor: crm-egress-guardrail-tpl"]
+        REGISTRY["Cloud Agent Registry\n//agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1"]
+        BROKER["GCP Auth Provider Broker\ngemini-api-key | gh-mcp-token | github-3lo\ncrm-api-key | crm-2lo | crm-3lo"]
+        GEMINI["Gemini API\ngenerativelanguage.googleapis.com\nmodel: gemini-3.8-flash"]
+        EVALS["Vertex AI Experiments\nagent-security-lab-eval"]
+    end
+
+    MAC -->|"A2A / HTTP"| ALB
+    ALB -->|"Prompt inspection"| ALB_MA
+    ALB_MA --> CR_ID
+    ALB -.-> INGRESS_GW
+
+    CR_ID -->|"SPIFFE Auth"| BROKER
+    AR -->|"SPIFFE Auth"| BROKER
+    CR_LEGACY -->|"Legacy SA (DENIED SEC-01)"| BROKER
+
+    BROKER -->|"Vaulted API Key"| GEMINI
+    BROKER -->|"2LO / 3LO CRM"| CRM_MOCK
+    BROKER <-->|"3LO Code Exchange"| GITHUB_OAUTH
+    BROWSER -->|"Authorize"| GITHUB_OAUTH
+
+    CR_ID -->|"Flow 1: EGRESS_GW_PROXY_IP=10.10.0.40:80"| SWP
+    SWP -.->|"Backed by"| SWP_GW
+    SWP -->|"Allowed hosts only (403 others)"| RAILWAY
+    SWP -->|"Allowed CRM"| CRM_MOCK
+
+    AR -->|"Flow 2: call_mcp + 3LO token"| RAILWAY
+    AR -.->|"Governed by"| MANAGED_GW
+    RAILWAY -->|"Authorization: Bearer gho_..."| GITHUB_API
+
+    AR -.->|"RuntimeIdentity registered"| REGISTRY
+    CR_ID -.->|"RuntimeReference registered"| REGISTRY
+    EVALS -->|"Layer 1 EvalTask"| AR
+    EVALS -->|"Layer 1 EvalTask"| CR_LEGACY
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Agents, Gateways &amp; Services Inventory</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Platform &amp; Location</th>
+            <th>Endpoint / Resource ID</th>
+            <th>Identity &amp; Registration</th>
+            <th>Verified Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>local-mac-agent</strong></td>
+            <td>Local macOS (<code>localhost:8090</code>)</td>
+            <td><code>http://localhost:8090</code> (<code>/.well-known/agent.json</code>, <code>/mcp</code>)</td>
+            <td><span class="badge badge-ext">External Local</span></td>
+            <td>Desktop client/agent calling GCP ALB (<code>35.209.113.245</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>crm-agent-id</strong></td>
+            <td>Cloud Run (<code>us-central1</code>, <code>agent-lab-vpc</code>)</td>
+            <td><code>https://crm-agent-id-172882039333.us-central1.run.app</code> (via ALB <code>35.209.113.245</code>)</td>
+            <td><span class="badge badge-spiffe">SPIFFE AGENT_IDENTITY</span><br />Registered in Agent Registry</td>
+            <td><strong>Flow 1:</strong> Routes outbound Railway/GitHub calls via <code>10.10.0.40:80</code> (<code>crm-swp-egress</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>test-agent-ar</strong></td>
+            <td>Vertex AI Agent Engine (<code>us-central1</code>)</td>
+            <td><code>projects/172882039333/locations/us-central1/reasoningEngines/8894320367376531456</code></td>
+            <td><span class="badge badge-spiffe">SPIFFE RuntimeIdentity</span><br />Registered in Agent Registry (<code>SEC-07</code>)</td>
+            <td><strong>Flow 2:</strong> Runs Gemini 3.8 Flash (<code>mode="llm"</code>) &amp; Railway GitHub 3LO MCP calls (<code>mode="mcp"</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>test-agent-cr</strong></td>
+            <td>Cloud Run (<code>us-central1</code>)</td>
+            <td><code>https://test-agent-cr-5im2gb6gtq-uc.a.run.app</code></td>
+            <td><span class="badge badge-legacy">Legacy Compute SA</span></td>
+            <td>Negative control (<code>SEC-01</code>): denied by GCP Auth Provider Broker</td>
+          </tr>
+          <tr>
+            <td><strong>gh-mcp-server</strong></td>
+            <td>Railway (Outside GCP)</td>
+            <td><code>https://gh-mcp-server-production.up.railway.app/mcp</code></td>
+            <td><span class="badge badge-ext">External MCP Server</span></td>
+            <td>Executes live GitHub API calls using per-request <code>X-GitHub-Token</code> (3LO) + <code>MCP_BEARER_TOKEN</code></td>
+          </tr>
+          <tr>
+            <td><strong>crm-swp-egress</strong></td>
+            <td>VPC Secure Web Proxy (<code>agent-lab-vpc</code>)</td>
+            <td><code>10.10.0.40:80</code> (<code>EXPLICIT_ROUTING_MODE</code>)</td>
+            <td>Linked to <code>crm-egress-swp-gw</code> (<code>selfManaged</code>)</td>
+            <td>Allows Railway, GitHub, CRM; blocks unapproved hosts (<code>example.com</code> &rarr; <code>403 Forbidden</code>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. Auth Providers &amp; Security Controls</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Auth Provider / Control</th>
+            <th>Configuration (<code>geagent-sasfar-ooc</code> / <code>us-central1</code>)</th>
+            <th>Verified Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong><code>gemini-api-key</code></strong></td>
+            <td>Vaults <code>agent-vertex-gemini-key</code> (restricted to <code>generativelanguage.googleapis.com</code>)</td>
+            <td>Zero-secret Gemini 3.8 Flash inference for <code>crm-agent-id</code> &amp; <code>test-agent-ar</code></td>
+          </tr>
+          <tr>
+            <td><strong><code>gh-mcp-token</code></strong></td>
+            <td>Vaults Railway <code>MCP_BEARER_TOKEN</code></td>
+            <td>Authenticates <code>crm-agent-id</code> &amp; <code>test-agent-ar</code> to Railway <code>/mcp</code></td>
+          </tr>
+          <tr>
+            <td><strong><code>github-3lo</code></strong></td>
+            <td>GitHub OAuth (<code>Ov23lichygy8VMPnfuLZ</code>); allowed: <code>read:user,repo</code>; blocked: <code>delete_repo,admin:org</code></td>
+            <td>Live <code>gh_whoami</code> &amp; <code>gh_list_my_repos</code> succeed for <code>asfar</code>; <code>alice</code> gets <code>CONSENT_REQUIRED</code>; <code>delete_repo</code> gets <code>DENIED_BY_GCP_BROKER</code></td>
+          </tr>
+          <tr>
+            <td><strong><code>crm-api-key</code> / <code>crm-2lo</code> / <code>crm-3lo</code></strong></td>
+            <td>Stage 1 API key, Stage 2 M2M (<code>metrics:read</code> / <code>metrics:delete</code>), Stage 3 PKCE (<code>deals:read</code> / <code>deals:admin</code>)</td>
+            <td>Enforces SPIFFE workload binding, scope guardrails, and per-user 3LO isolation against <code>crm-tool-mock</code></td>
+          </tr>
+          <tr>
+            <td><strong>Model Armor (<code>crm-guardrail-tpl</code>, <code>crm-egress-guardrail-tpl</code>)</strong></td>
+            <td>Attached to ALB (<code>crm-alb-ma-extension</code>) &amp; Gateways</td>
+            <td>Blocks direct prompt injection on ingress (<code>SEC-05</code>) &amp; indirect prompt injection on egress (<code>SEC-06</code>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. End-to-End Flows: 2LO vs. 3LO (Flow 1 &amp; Flow 2)</h2>
+
+      <h3>A. 2-Legged OAuth (2LO) — Machine-to-Machine (<code>crm-2lo</code>)</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Client as Desktop Agent (local_agent)
+    participant ALB as GCP ALB + Model Armor
+    participant Agent as crm-agent-id (SPIFFE)
+    participant Broker as GCP Auth Provider (crm-2lo)
+    participant SWP as crm-swp-egress (10.10.0.40:80)
+    participant CRM as crm-tool-mock
+
+    Client->>ALB: POST /api/test-stage (stage2_2lo_read or stage2_2lo_delete)
+    ALB->>Agent: Model Armor ALLOW -> Forward
+    Agent->>Broker: retrieve_credentials("crm-2lo", scopes) using SPIFFE ID
+
+    alt Allowed Scope (metrics:read)
+        Broker->>CRM: POST /oauth/token (grant_type=client_credentials)
+        CRM-->>Broker: M2M Access Token
+        Broker-->>Agent: Returns token
+        Agent->>SWP: GET /v1/org-metrics (via proxy)
+        SWP->>CRM: Allowed by crm-swp-policy -> Forward
+        CRM-->>Agent: 200 OK
+        Agent-->>Client: outcome = ALLOWED
+    else Blocked Scope (metrics:delete)
+        Broker-->>Agent: Rejected by blockedScopes guardrail
+        Agent-->>Client: outcome = DENIED_BY_GCP_BROKER
+    end
+      </div>
+
+      <h3>B. 3-Legged OAuth (3LO) — Flow 1 (Cloud Run &rarr; SWP) &amp; Flow 2 (Agent Engine)</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Client as Desktop / Eval Client
+    participant Browser as User Browser
+    participant ALB as GCP ALB + Model Armor
+    participant CR as Flow 1: crm-agent-id (Cloud Run)
+    participant AR as Flow 2: test-agent-ar (Agent Engine)
+    participant Broker as GCP Auth Provider (github-3lo)
+    participant GH_Auth as GitHub OAuth
+    participant SWP as crm-swp-egress (10.10.0.40:80)
+    participant Railway as Railway gh-mcp-server
+    participant GH_API as api.github.com
+
+    Note over Client,GH_Auth: Phase 1: First-Time Consent (user_id="asfar")
+    Client->>ALB: POST /api/test-github-3lo
+    ALB->>CR: Model Armor ALLOW -> Forward
+    CR->>Broker: retrieve_credentials("github-3lo", user_id="asfar")
+    Broker-->>CR: CONSENT_REQUIRED + authorize URL (client_id + GCP redirectUrl)
+    CR-->>Client: Returns GitHub consent URL
+
+    Browser->>GH_Auth: User clicks Authorize
+    GH_Auth-->>Broker: Redirects ?code=... to GCP oauthcallback
+    Broker->>GH_Auth: Back-channel POST /access_token (code + client_id + client_secret)
+    GH_Auth-->>Broker: Vaults real user token (gho_...)
+    Broker-->>Browser: Redirects to http://35.209.113.245/oauth/callback (FinalizeCredentials)
+
+    Note over Client,GH_API: Phase 2a: Flow 1 Live Execution (Cloud Run via SWP)
+    Client->>ALB: POST /api/test-github-3lo (use_egress_proxy=true)
+    ALB->>CR: Forward
+    CR->>Broker: Fetch github-3lo (gho_...) + gh-mcp-token
+    CR->>SWP: POST /mcp (X-GitHub-Token: gho_..., Bearer mcp_token)
+    SWP->>Railway: Allowed by crm-swp-policy -> Forward
+    Railway->>GH_API: GET /user or /user/repos (Bearer gho_...)
+    GH_API-->>Railway: Real GitHub profile/repos JSON
+    Railway-->>CR: MCP tool result
+    CR-->>Client: outcome = ALLOWED (via_egress_gw: true)
+
+    Note over Client,GH_API: Phase 2b: Flow 2 Live Execution (Agent Engine)
+    Client->>AR: re.query(mode="mcp", tool_name="gh_whoami", user_id="asfar")
+    AR->>Broker: Fetch github-3lo (gho_...) + gh-mcp-token via RuntimeIdentity
+    AR->>Railway: POST /mcp (X-GitHub-Token: gho_..., Bearer mcp_token)
+    Railway->>GH_API: GET /user (Bearer gho_...)
+    GH_API-->>AR: Real GitHub profile JSON
+    AR-->>Client: outcome = ALLOWED
+      </div>
+    </section>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });
+  </script>
+</body>
+</html>

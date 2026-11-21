@@ -1,0 +1,5 @@
+description: "Client-to-Agent Ingress Gateway governing access to registered agents in geagent-sasfar-ooc"
+googleManaged:
+  governedAccessPath: CLIENT_TO_AGENT
+registries:
+  - //agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1

@@ -1,0 +1,6 @@
+name: projects/geagent-sasfar-ooc/locations/us-central1/authzExtensions/crm-ma-extension
+service: modelarmor.us-central1.rep.googleapis.com
+metadata:
+  model_armor_settings: '[{"request_template_id":"projects/geagent-sasfar-ooc/locations/us-central1/templates/crm-guardrail-tpl","response_template_id":"projects/geagent-sasfar-ooc/locations/us-central1/templates/crm-guardrail-tpl"}]'
+failOpen: false
+timeout: 1s

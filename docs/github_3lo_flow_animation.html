@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub 3LO via GCP Auth Provider: end-to-end animation</title>
+<style>
+  :root {
+    --bg: #faf9f5; --panel: #ffffff; --text: #1f1e1d; --muted: #6b6a65; --line: #d8d6cc;
+    --gray: #888780; --purple: #534AB7; --amber: #BA7517; --coral: #D85A30; --teal: #1D9E75; --blue: #378ADD;
+    --purple-bg: #EEEDFE; --gray-bg: #F1EFE8; --hl: #fff6e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1e1d; --panel: #2a2927; --text: #ecebe6; --muted: #a3a29b; --line: #44433f;
+      --gray: #b4b2a9; --purple: #AFA9EC; --amber: #EF9F27; --coral: #F0997B; --teal: #5DCAA5; --blue: #85B7EB;
+      --purple-bg: #3C3489; --gray-bg: #444441; --hl: #3a3226;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 18px 24px 6px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 24px; position: sticky; top: 0; background: var(--bg); z-index: 5; border-bottom: 1px solid var(--line); }
+  button { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--purple); border-color: var(--purple); color: #fff; min-width: 96px; }
+  button.active { outline: 2px solid var(--purple); outline-offset: -1px; }
+  .seg { display: inline-flex; gap: 4px; margin-right: 10px; }
+  .speed { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-left: auto; }
+  .progress { font-size: 13px; color: var(--muted); min-width: 130px; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 16px 24px 32px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .phase-title { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
+  svg text { font-family: inherit; }
+  .step-num { font-size: 12px; color: var(--muted); }
+  .step-title { font-size: 18px; font-weight: 500; margin: 2px 0 8px; }
+  .step-detail { font-size: 14px; line-height: 1.6; }
+  .step-detail code, .check code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: var(--gray-bg); padding: 1px 5px; border-radius: 4px; }
+  .carry { display: inline-block; margin-top: 10px; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+  .check { margin-top: 12px; font-size: 13px; line-height: 1.55; background: var(--hl); border-left: 3px solid var(--amber); padding: 8px 10px; }
+  .check b { font-weight: 500; }
+  h3 { font-size: 14px; font-weight: 500; margin: 0 0 8px; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { white-space: nowrap; font-weight: 500; padding-right: 10px; }
+  .chip { display: inline-block; font-size: 11.5px; padding: 1px 7px; margin: 1px 2px 1px 0; border-radius: 999px; background: var(--gray-bg); }
+  .chip.new { background: var(--amber); color: #fff; }
+  .chip.maybe { background: transparent; border: 1px dashed var(--muted); }
+  .chip.none { background: transparent; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 22px; height: 0; border-top: 3px solid; display: inline-block; }
+  .steplist { font-size: 13px; max-height: 340px; overflow: auto; margin: 0; padding: 0; list-style: none; }
+  .steplist li { padding: 5px 6px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; }
+  .steplist li:hover { background: var(--gray-bg); }
+  .steplist li.cur { background: var(--purple-bg); }
+  .steplist li.done { color: var(--muted); }
+  .steplist .n { min-width: 34px; color: var(--muted); }
+  .kbd { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>GitHub 3-legged OAuth through the GCP Auth Provider: end to end</h1>
+  <div class="sub">Phase 1 is the one-time consent. Phase 2 is every call after that. Watch where the client ID, the client secret, the auth code and the user token (gho_…) go.</div>
+</header>
+
+<div class="controls">
+  <div class="seg" role="group" aria-label="Choose phase">
+    <button id="m-all" class="active" onclick="setMode('all')">End to end</button>
+    <button id="m-p1" onclick="setMode('p1')">Phase 1 only</button>
+    <button id="m-p2" onclick="setMode('p2')">Phase 2 only</button>
+  </div>
+  <button onclick="reset()" aria-label="Reset">Reset</button>
+  <button onclick="prev()" aria-label="Previous step">Back</button>
+  <button id="play" class="primary" onclick="togglePlay()">Play</button>
+  <button onclick="next()" aria-label="Next step">Next</button>
+  <span class="progress" id="progress">Step 0 of 0</span>
+  <label class="speed">Speed <input type="range" id="speed" min="0.5" max="2.5" step="0.25" value="1"> <span id="speedv">1x</span></label>
+</div>
+
+<main>
+  <section>
+    <div class="card">
+      <p class="phase-title" id="phaseTitle">Phase 1: one-time consent</p>
+      <svg id="diagram" width="100%" role="img" aria-label="Swimlane sequence diagram"></svg>
+      <div class="legend" style="margin-top:8px">
+        <span><i class="sw" style="border-color:var(--gray)"></i>Request or data</span>
+        <span><i class="sw" style="border-color:var(--purple)"></i>Agent identity (SPIFFE)</span>
+        <span><i class="sw" style="border-color:var(--amber)"></i>Client ID (public)</span>
+        <span><i class="sw" style="border-color:var(--coral)"></i>Client secret</span>
+        <span><i class="sw" style="border-color:var(--teal)"></i>User token gho_…</span>
+        <span><i class="sw" style="border-color:var(--gray);border-top-style:dashed"></i>Browser or human step</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card" aria-live="polite">
+      <div class="step-num" id="stepNum">Press Play or Next to start</div>
+      <div class="step-title" id="stepTitle">Ready</div>
+      <div class="step-detail" id="stepDetail">Each step shows what moves between components and which credential it carries. The table below tracks which components have seen each credential so far.</div>
+      <div id="stepCarry"></div>
+      <div id="stepCheck"></div>
+    </div>
+
+    <div class="card">
+      <h3>Who has seen each credential so far</h3>
+      <table id="seen"></table>
+    </div>
+
+    <div class="card">
+      <h3>All steps (click one to jump to it)</h3>
+      <ul class="steplist" id="steplist"></ul>
+      <div class="kbd" style="margin-top:8px">Keyboard: Space plays or pauses, left and right arrows step.</div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const COLORS = { req: 'var(--gray)', id: 'var(--purple)', app: 'var(--amber)', secret: 'var(--coral)', token: 'var(--teal)', human: 'var(--gray)', data: 'var(--blue)' };
+
+const PHASES = {
+  p1: {
+    title: 'Phase 1: one-time consent (client ID and client secret are used here)',
+    lanes: [
+      { id: 'desktop', name: 'Desktop agent', sub: 'local_agent', gcp: false },
+      { id: 'alb', name: 'ALB', sub: 'Ingress Model Armor', gcp: true },
+      { id: 'cr', name: 'Cloud Run', sub: 'crm-agent-id', gcp: true },
+      { id: 'auth', name: 'Auth Provider', sub: 'github-3lo', gcp: true },
+      { id: 'browser', name: 'Your browser', sub: 'you, signed in', gcp: false },
+      { id: 'gh', name: 'GitHub', sub: 'OAuth server', gcp: false },
+    ],
+    steps: [
+      { f: 'desktop', t: 'alb', kind: 'req', carry: 'prompt + user_id', title: 'Request with a user identity',
+        detail: 'The desktop agent sends <code>"List my GitHub repos"</code> together with <code>user_id="asfar"</code> to the ALB at <code>35.209.113.245</code>.',
+        check: 'Where does <code>user_id</code> come from? If it is just a field in the request body, anyone who can reach the ALB can claim to be <code>asfar</code>. Take it from a verified identity (IAP header or a signed OIDC token).' },
+      { f: 'alb', t: 'cr', kind: 'req', carry: 'screened prompt', title: 'Ingress Model Armor screens the prompt',
+        detail: 'Model Armor on the load balancer checks the prompt for injection and jailbreak attempts. A blocked prompt stops here and never reaches the agent.' },
+      { f: 'cr', t: 'auth', kind: 'id', carry: 'SPIFFE ID', cred: 'spiffe', title: 'Agent asks the broker for a token',
+        detail: '<code>crm-agent-id</code> calls <code>retrieve_credentials(auth_provider="github-3lo", user_id="asfar")</code>. It authenticates with its SPIFFE agent identity, and IAM decides whether this agent may use this provider.' },
+      { f: 'auth', t: 'cr', kind: 'app', carry: 'consent URL (client_id)', cred: 'client_id', title: 'No token yet, so the broker returns CONSENT_REQUIRED',
+        detail: 'There is no token stored for <code>asfar</code>. The broker returns a consent result that contains the authorize URL: <code>github.com/login/oauth/authorize?client_id=…&amp;redirect_uri=…/oauthcallback&amp;scope=read:user,repo&amp;state=…</code>. <b>The client ID is used here.</b> It is public, so putting it in a URL is fine.' },
+      { f: 'cr', t: 'desktop', kind: 'app', carry: 'consent URL (client_id)', cred: 'client_id', title: 'The consent URL goes back to the user',
+        detail: 'The agent cannot click Authorize for you. It returns the consent URL to the caller, here the desktop agent, so a person can open it.',
+        check: 'Today <code>retrieve_with_polling</code> in <code>agent_cr_id/app.py</code> uses <code>user_id="system"</code> and polls for 10 seconds. For 3LO it must pass the real user and return this URL instead of waiting.' },
+      { f: 'desktop', t: 'browser', kind: 'human', carry: 'you open the link', cred: 'client_id', title: 'You open the consent URL',
+        detail: 'You open the URL in a browser where you are signed in to GitHub as yourself.' },
+      { f: 'browser', t: 'gh', kind: 'app', carry: 'authorize?client_id=…', cred: 'client_id', title: 'You approve the app on GitHub',
+        detail: 'GitHub uses the <b>client ID</b> to look up the OAuth app and shows its name and the requested scopes. You click <b>Authorize</b>. This proves that the account owner agreed.' },
+      { f: 'gh', t: 'auth', via: 'browser', kind: 'human', carry: '?code=xyz', cred: 'code', title: 'GitHub sends a one-time code by redirect',
+        detail: 'GitHub redirects your browser to Google\'s <code>oauthcallback</code> with <code>?code=xyz&amp;state=…</code>. The code passes through the browser, so treat it as visible. It is short-lived, works once, and is useless without the client secret. <code>state</code> ties the response to the request for <code>asfar</code>.',
+        check: 'The GitHub OAuth app\'s "Authorization callback URL" must match Google\'s <code>oauthcallback</code> URL exactly, or this step fails with <code>redirect_uri mismatch</code>.' },
+      { f: 'auth', t: 'gh', kind: 'secret', carry: 'code + client_id + client_secret', cred: 'client_secret', title: 'Back-channel exchange: the only place the client secret is used',
+        detail: 'The broker POSTs directly to <code>github.com/login/oauth/access_token</code> with <code>code</code>, <code>client_id</code> and <b><code>client_secret</code></b>. This call is server to server. It never touches the browser, Cloud Run, the desktop agent or the MCP server.' },
+      { f: 'gh', t: 'auth', kind: 'token', carry: 'gho_… token', cred: 'token', title: 'GitHub issues the user token',
+        detail: 'GitHub checks the secret and the code and returns an access token (<code>gho_…</code>) that acts as you, limited to the scopes you approved.' },
+      { f: 'auth', t: 'auth', kind: 'token', carry: 'stored for user_id=asfar', title: 'The broker stores the token',
+        detail: 'The token is stored under <code>github-3lo</code> + <code>user_id="asfar"</code>. No agent code, environment variable or <code>.env</code> file ever holds it at rest.' },
+      { f: 'auth', t: 'browser', kind: 'human', carry: 'redirect to continue_uri', title: 'Consent complete',
+        detail: 'Your browser is redirected to the <code>continue_uri</code>, for example a "Consent complete" page. The desktop agent can now retry, which is Phase 2.' },
+    ],
+  },
+  p2: {
+    title: 'Phase 2: every later call (only the gho_… token travels)',
+    lanes: [
+      { id: 'desktop', name: 'Desktop agent', sub: 'local_agent', gcp: false },
+      { id: 'alb', name: 'ALB', sub: 'Ingress Model Armor', gcp: true },
+      { id: 'cr', name: 'Cloud Run', sub: 'crm-agent-id', gcp: true },
+      { id: 'auth', name: 'Auth Provider', sub: 'github-3lo', gcp: true },
+      { id: 'egress', name: 'Egress gateway', sub: 'Egress Model Armor', gcp: true },
+      { id: 'mcp', name: 'MCP server', sub: 'Railway', gcp: false },
+      { id: 'api', name: 'GitHub API', sub: 'api.github.com', gcp: false },
+    ],
+    steps: [
+      { f: 'desktop', t: 'alb', kind: 'req', carry: 'prompt + user_id', title: 'The same request again',
+        detail: 'The desktop agent sends <code>"List my repos"</code> with <code>user_id="asfar"</code>.' },
+      { f: 'alb', t: 'cr', kind: 'req', carry: 'screened prompt', title: 'Ingress Model Armor screens the prompt',
+        detail: 'The same prompt-injection and jailbreak check as before, then the request goes to the agent.' },
+      { f: 'cr', t: 'auth', kind: 'id', carry: 'SPIFFE ID', cred: 'spiffe', title: 'Agent asks the broker for a token',
+        detail: '<code>retrieve_credentials("github-3lo", user_id="asfar")</code>, authenticated with the agent\'s SPIFFE identity.' },
+      { f: 'auth', t: 'cr', kind: 'token', carry: 'gho_… token', cred: 'token', title: 'The broker releases the user token',
+        detail: 'A token now exists for <code>asfar</code>, so the broker checks that this agent is allowed and returns <b>only</b> <code>gho_…</code>. The client ID and client secret stay inside the Auth Provider.' },
+      { f: 'cr', t: 'egress', kind: 'token', carry: 'Bearer gho_…', cred: 'token', maybe: 'egress', title: 'The agent calls the MCP tool',
+        detail: 'Cloud Run sends the MCP request (for example <code>tools/call</code>) through the egress gateway with the token in a header.',
+        check: 'Header name: the pasted design says <code>X-GitHub-Token</code>, while <code>app.py</code> sends <code>Authorization: Bearer</code>. Choose one. If <code>Authorization</code> carries the GitHub token, the MCP server needs another way to authenticate the agent.' },
+      { f: 'egress', t: 'mcp', kind: 'token', carry: 'Bearer gho_…', cred: 'token', maybe: 'egress', title: 'The egress gateway forwards to the MCP server',
+        detail: 'The request leaves GCP for the MCP server on Railway.',
+        check: 'To run Model Armor on this traffic, the gateway must decrypt TLS, and then it can read <code>gho_…</code>. As a plain HTTPS CONNECT tunnel (what <code>proxies=</code> in <code>app.py</code> does), it cannot read the token, but it cannot inspect the content either. You get one or the other.' },
+      { f: 'mcp', t: 'api', kind: 'token', carry: 'GET /user/repos, Bearer gho_…', cred: 'token', title: 'The MCP server calls GitHub as you',
+        detail: 'The MCP server calls <code>GET https://api.github.com/user/repos</code> with <code>Authorization: Bearer gho_…</code>. GitHub treats it as <code>asfar</code>, limited to the scopes you approved.' },
+      { f: 'api', t: 'mcp', kind: 'data', carry: 'repos JSON', title: 'GitHub returns your repos',
+        detail: 'GitHub returns the JSON list of your repositories.' },
+      { f: 'mcp', t: 'egress', kind: 'data', carry: 'MCP tool result', title: 'The MCP server returns the tool result',
+        detail: 'The result is wrapped as an MCP JSON-RPC response.' },
+      { f: 'egress', t: 'cr', kind: 'data', carry: 'scanned result', title: 'Egress Model Armor scans the response',
+        detail: 'Model Armor checks the response for indirect prompt injection, such as instructions hidden in a repo description or README, before the agent\'s LLM reads it.' },
+      { f: 'cr', t: 'desktop', kind: 'req', carry: 'final answer', title: 'The agent answers',
+        detail: 'The agent\'s LLM turns the tool result into an answer, which goes back through the ALB to the desktop agent. No secret ever reached the desktop agent.' },
+    ],
+  },
+};
+
+const CREDS = [
+  { key: 'client_id', label: 'Client ID', initial: ['Auth Provider', 'GitHub'] },
+  { key: 'client_secret', label: 'Client secret', initial: ['Auth Provider', 'GitHub'] },
+  { key: 'code', label: 'Auth code', initial: [] },
+  { key: 'token', label: 'User token gho_…', initial: [] },
+  { key: 'spiffe', label: 'SPIFFE ID', initial: ['Cloud Run'] },
+];
+
+let mode = 'all', seq = [], cur = -1, playing = false, animToken = 0, dwellTimer = null;
+const svg = document.getElementById('diagram');
+const NS = 'http://www.w3.org/2000/svg';
+const W = 1000, TOP = 120, ROW = 42;
+
+function buildSeq() {
+  const phases = mode === 'all' ? ['p1', 'p2'] : [mode];
+  seq = [];
+  phases.forEach(p => PHASES[p].steps.forEach((s, i) => seq.push({ phase: p, idx: i, s })));
+}
+
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function laneX(phase) {
+  const lanes = PHASES[phase].lanes, m = 75, sp = (W - 2 * m) / (lanes.length - 1);
+  const map = {};
+  lanes.forEach((l, i) => map[l.id] = m + i * sp);
+  return { map, sp };
+}
+
+function drawArrow(g, phase, s, i, frac, faint) {
+  const { map } = laneX(phase);
+  const y = TOP + i * ROW, color = COLORS[s.kind];
+  if (s.f === s.t) {
+    const x = map[s.f];
+    el('rect', { x: x - 70, y: y - 13, width: 140, height: 26, rx: 6, fill: faint ? 'none' : 'var(--panel)', stroke: color, 'stroke-width': faint ? 0.5 : 1.5, opacity: faint ? 0.25 : frac }, g);
+    if (!faint) el('text', { x, y: y + 4, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--text)', opacity: frac }, g, s.carry);
+    return null;
+  }
+  const x1 = map[s.f], x2 = map[s.t], dir = Math.sign(x2 - x1);
+  const xs = x1 + dir * 4, xe = x2 - dir * 8;
+  const xc = xs + (xe - xs) * frac;
+  const line = el('line', { x1: xs, y1: y, x2: xc, y2: y, stroke: color, 'stroke-width': faint ? 1 : (s.kind === 'secret' ? 3 : 2), opacity: faint ? 0.18 : 1, 'stroke-dasharray': s.kind === 'human' ? '6 5' : '' }, g);
+  if (!faint && frac >= 1) el('path', { d: `M${xe - dir * 8} ${y - 5} L${xe} ${y} L${xe - dir * 8} ${y + 5}`, fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  const bx = xs + dir * 20;
+  el('circle', { cx: bx, cy: y, r: 10, fill: 'var(--panel)', stroke: color, 'stroke-width': 1, opacity: faint ? 0.35 : 1 }, g);
+  el('text', { x: bx, y: y + 4, 'text-anchor': 'middle', 'font-size': 11, fill: faint ? 'var(--muted)' : 'var(--text)', opacity: faint ? 0.6 : 1 }, g, i + 1);
+  if (!faint && frac >= 1) {
+    const lx = (xs + xe) / 2 + dir * 12;
+    el('text', { x: lx, y: y - 7, 'text-anchor': 'middle', 'font-size': 11.5, fill: 'var(--muted)' }, g, s.carry);
+  }
+  return { xs, xe, y, color };
+}
+
+function render(phase, doneUpTo) {
+  const P = PHASES[phase], { map, sp } = laneX(phase);
+  const H = TOP + P.steps.length * ROW + 10;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+  document.getElementById('phaseTitle').textContent = P.title;
+  const bw = Math.min(sp - 10, 140);
+  const gcpLanes = P.lanes.filter(l => l.gcp);
+  if (gcpLanes.length) {
+    const gx1 = map[gcpLanes[0].id] - bw / 2 - 6, gx2 = map[gcpLanes[gcpLanes.length - 1].id] + bw / 2 + 6;
+    el('rect', { x: gx1, y: 4, width: gx2 - gx1, height: H - 8, rx: 10, fill: 'var(--purple-bg)', opacity: 0.18, stroke: 'var(--purple)', 'stroke-width': 0.5, 'stroke-dasharray': '4 4' }, svg);
+    el('text', { x: gx1 + 8, y: H - 12, 'font-size': 11, fill: 'var(--purple)' }, svg, 'Inside Google Cloud');
+  }
+  P.lanes.forEach(l => {
+    const x = map[l.id];
+    el('line', { x1: x, y1: 72, x2: x, y2: H - 24, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, svg);
+    el('rect', { x: x - bw / 2, y: 16, width: bw, height: 54, rx: 8, fill: l.gcp ? 'var(--purple-bg)' : 'var(--gray-bg)', stroke: l.gcp ? 'var(--purple)' : 'var(--gray)', 'stroke-width': 0.75 }, svg);
+    el('text', { x, y: 38, 'text-anchor': 'middle', 'font-size': 13.5, 'font-weight': 500, fill: 'var(--text)' }, svg, l.name);
+    el('text', { x, y: 56, 'text-anchor': 'middle', 'font-size': 11.5, fill: 'var(--muted)' }, svg, l.sub);
+  });
+  const g = el('g', {}, svg);
+  P.steps.forEach((s, i) => { if (i > doneUpTo) drawArrow(g, phase, s, i, 1, true); });
+  P.steps.forEach((s, i) => { if (i <= doneUpTo) drawArrow(g, phase, s, i, 1, false); });
+}
+
+function packet(phase, s, i, onDone) {
+  const my = ++animToken;
+  const g = el('g', {}, svg);
+  const dur = 1500 / speed();
+  const t0 = performance.now();
+  const pk = el('g', {}, svg);
+  const label = s.carry;
+  const w = Math.max(60, label.length * 6.6 + 18);
+  const { map } = laneX(phase);
+  const y = TOP + i * ROW;
+  el('rect', { x: -w / 2, y: -11, width: w, height: 22, rx: 11, fill: COLORS[s.kind], opacity: 0.95 }, pk);
+  el('text', { x: 0, y: 4, 'text-anchor': 'middle', 'font-size': 11.5, fill: '#fff', 'font-weight': 500 }, pk, label);
+  function frame(now) {
+    if (my !== animToken) { g.remove(); pk.remove(); return; }
+    const k = Math.min(1, (now - t0) / dur), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    g.innerHTML = '';
+    const geo = drawArrow(g, phase, s, i, e, false);
+    let px;
+    if (s.f === s.t) px = map[s.f];
+    else px = geo.xs + (geo.xe - geo.xs) * e;
+    const py = s.f === s.t ? y - 26 - 8 * Math.sin(Math.PI * e) : y - 20;
+    pk.setAttribute('transform', `translate(${px},${py})`);
+    pk.setAttribute('opacity', k > 0.92 ? (1 - k) / 0.08 : 1);
+    if (k < 1) requestAnimationFrame(frame);
+    else { pk.remove(); onDone && onDone(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function speed() { return parseFloat(document.getElementById('speed').value); }
+
+function seenState(upTo) {
+  const seen = {}, fresh = {}, maybe = {};
+  CREDS.forEach(c => { seen[c.key] = new Set(c.initial); fresh[c.key] = new Set(); maybe[c.key] = new Set(); });
+  for (let j = 0; j <= upTo; j++) {
+    const { phase, s } = seq[j];
+    if (!s.cred) continue;
+    const names = id => PHASES[phase].lanes.find(l => l.id === id).name;
+    const add = [s.f, s.t].filter(id => id !== s.maybe).map(names);
+    if (s.via) add.push(names(s.via));
+    add.forEach(n => { if (!seen[s.cred].has(n)) { seen[s.cred].add(n); if (j === upTo) fresh[s.cred].add(n); } });
+    if (s.maybe) maybe[s.cred].add(names(s.maybe));
+  }
+  return { seen, fresh, maybe };
+}
+
+function updatePanel() {
+  const tbl = document.getElementById('seen');
+  const { seen, fresh, maybe } = seenState(cur);
+  tbl.innerHTML = CREDS.map(c => {
+    const list = [...seen[c.key]];
+    let chips = list.length ? list.map(n => `<span class="chip${fresh[c.key].has(n) ? ' new' : ''}">${n}</span>`).join('') : '<span class="chip none">nobody yet</span>';
+    [...maybe[c.key]].forEach(n => { if (!seen[c.key].has(n)) chips += `<span class="chip maybe" title="Only if it decrypts TLS">${n} (if TLS is decrypted)</span>`; });
+    return `<tr><td>${c.label}</td><td>${chips}</td></tr>`;
+  }).join('');
+
+  document.getElementById('progress').textContent = `Step ${Math.max(cur + 1, 0)} of ${seq.length}`;
+  const list = document.getElementById('steplist');
+  list.querySelectorAll('li').forEach((li, j) => { li.className = j === cur ? 'cur' : (j < cur ? 'done' : ''); });
+  const curLi = list.querySelector('li.cur');
+  if (curLi) { const top = curLi.offsetTop - list.offsetTop, bottom = top + curLi.offsetHeight;
+    if (top < list.scrollTop) list.scrollTop = top; else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight; }
+
+  if (cur < 0) {
+    document.getElementById('stepNum').textContent = 'Press Play or Next to start';
+    document.getElementById('stepTitle').textContent = 'Ready';
+    document.getElementById('stepDetail').innerHTML = 'Each step shows what moves between components and which credential it carries. The table below tracks which components have seen each credential so far.';
+    document.getElementById('stepCarry').innerHTML = '';
+    document.getElementById('stepCheck').innerHTML = '';
+    return;
+  }
+  const { phase, idx, s } = seq[cur];
+  document.getElementById('stepNum').textContent = `${phase === 'p1' ? 'Phase 1' : 'Phase 2'}, step ${idx + 1}`;
+  document.getElementById('stepTitle').textContent = s.title;
+  document.getElementById('stepDetail').innerHTML = s.detail;
+  const c = COLORS[s.kind];
+  document.getElementById('stepCarry').innerHTML = `<span class="carry" style="color:${c};border-color:${c}">Carries: ${s.carry}</span>`;
+  document.getElementById('stepCheck').innerHTML = s.check ? `<div class="check"><b>Check this:</b> ${s.check}</div>` : '';
+}
+
+function show(j, animate) {
+  clearTimeout(dwellTimer);
+  animToken++;
+  cur = Math.max(-1, Math.min(j, seq.length - 1));
+  updatePanel();
+  if (cur < 0) { render(seq[0].phase, -1); return; }
+  const { phase, idx, s } = seq[cur];
+  if (!animate) { render(phase, idx); return; }
+  render(phase, idx - 1);
+  packet(phase, s, idx, () => {
+    render(phase, idx);
+    if (playing) dwellTimer = setTimeout(() => {
+      if (cur < seq.length - 1) show(cur + 1, true);
+      else { playing = false; setPlayLabel(); }
+    }, 2200 / speed());
+  });
+}
+
+function setPlayLabel() { document.getElementById('play').textContent = playing ? 'Pause' : (cur >= seq.length - 1 ? 'Replay' : 'Play'); }
+function togglePlay() {
+  if (playing) { playing = false; clearTimeout(dwellTimer); setPlayLabel(); return; }
+  playing = true; setPlayLabel();
+  show(cur >= seq.length - 1 ? 0 : cur + 1, true);
+}
+function next() { playing = false; setPlayLabel(); if (cur < seq.length - 1) show(cur + 1, true); }
+function prev() { playing = false; setPlayLabel(); show(cur - 1, false); }
+function reset() { playing = false; show(-1, false); setPlayLabel(); }
+function setMode(m) {
+  mode = m;
+  ['all', 'p1', 'p2'].forEach(x => document.getElementById('m-' + x).classList.toggle('active', x === m));
+  buildSeq(); buildList(); reset();
+}
+function buildList() {
+  document.getElementById('steplist').innerHTML = seq.map((q, j) =>
+    `<li onclick="playing=false;setPlayLabel();show(${j}, true)"><span class="n">${q.phase === 'p1' ? 'P1' : 'P2'}.${q.idx + 1}</span><span>${q.s.title}</span></li>`).join('');
+}
+
+document.getElementById('speed').addEventListener('input', e => document.getElementById('speedv').textContent = e.target.value + 'x');
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowRight') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+buildSeq(); buildList(); reset();
+</script>
+</body>
+</html>

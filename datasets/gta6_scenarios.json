@@ -1,0 +1,32 @@
+[
+  {
+    "scenario_id": "GTA6-CONSOLE-VS-PC",
+    "title": "Console-Only vs. Day-1 PC + Direct Launcher",
+    "lever": "Platform Choice",
+    "prompt": "Compare GTA 6 Year-1 sales and net operating profit under (A) Console-First Launch (PS5 + Xbox Series X|S, staggered PC) vs. (B) Simultaneous Console + Day-1 PC via Direct Rockstar Launcher (20% blended platform fee instead of 30%). Predict Year-1 Units, Gross Revenue, Platform Fees, and Net Operating Profit after the $1.75B budget, and state which platform strategy wins."
+  },
+  {
+    "scenario_id": "GTA6-ONLINE-VS-OFFLINE",
+    "title": "Story-First (Delayed Online) vs. Day-1 GTA 6 Online + GTA+",
+    "lever": "Online vs. Offline",
+    "prompt": "Evaluate how GTA 6 Year-1 revenue changes if Take-Two/Rockstar launches (A) Offline Story-First (delaying GTA 6 Online by 6 months like 2013) vs. (B) Day-1 GTA 6 Online with 12% GTA+ ($7.99/mo) attach and Shark Cards. Quantify the recurring LTV lift, F2P cannibalization risk (Fortnite/Roblox), and Year-1 Gross vs. Net impact."
+  },
+  {
+    "scenario_id": "GTA6-EXTREME-MARKETING",
+    "title": "Extreme Marketing Blitz ($300M+ & Hardware Bundles) vs. Early-Access Pricing",
+    "lever": "Marketing & Pricing",
+    "prompt": "Compare two sales-acceleration levers on top of the Base Case (42M units, $76 ASP, $4.15B gross, $1.155B net): (A) Extreme Global Marketing Blitz (+$300M marketing spend + PS5 hardware bundles lifting units +12% to 47M) vs. (B) 72-Hour Early Access Deluxe/Collector's Tier ($109.99) lifting Deluxe mix from 25% to 40% with zero extra marketing spend. Calculate which lever produces higher Year-1 Net Operating Profit."
+  },
+  {
+    "scenario_id": "GTA6-UGC-CREATOR",
+    "title": "UGC / FiveM-Style Creator Economy Expansion",
+    "lever": "Future Growth Lever (UGC)",
+    "prompt": "Assess how launching an official GTA 6 Creator/UGC Economy (modding & custom RP servers with a 70/30 creator split) can leverage GTA 6 sales and retention in Year 1 and Year 2+ compared to traditional boxed + Shark Card monetization. Include platform fee, retention, and cannibalization trade-offs."
+  },
+  {
+    "scenario_id": "GTA6-OPTIMAL-PLAYBOOK",
+    "title": "Combined Optimal Launch Playbook (Sales Prediction)",
+    "lever": "Combined Strategy",
+    "prompt": "Synthesize the Console vs. PC, Online vs. Offline, Early-Access Pricing, and Marketing levers into one Optimal GTA 6 Launch Playbook. Provide a structured markdown summary table comparing Conservative, Base, Bull, and Optimal Strategy predictions (Year-1 Units, Gross Revenue, Net Operating Profit) and rank the top 3 levers by net profit ROI."
+  }
+]
