@@ -1,39 +1,15 @@
 # FDE-Agents: End-to-End GCP Agent Identity, Gateway, MCP & Eval Test Bed
 
 > **Google Cloud Project:** `geagent-sasfar-ooc` (`172882039333`) &bull; **Region:** `us-central1`  
-> **Interactive Google Cloud VPC Topology Animation:** Open [`docs/gcp_vpc_topology_animation.html`](docs/gcp_vpc_topology_animation.html) in any browser to watch animated end-to-end packet flows across Flow 1, Flow 2, Blocked Guardrails, and the Eval Harness.  
+> **Interactive Simulator v2 (SWP, PSC, Agent Engine, Memory Bank):** [`docs/test_bed_simulator_v2.html`](docs/test_bed_simulator_v2.html)  
+> **Interactive VPC Topology Animation:** [`docs/gcp_vpc_topology_animation.html`](docs/gcp_vpc_topology_animation.html)  
 > **Full Architecture Reference:** [`docs/test_bed_architecture.md`](docs/test_bed_architecture.md)
 
 ---
 
-## 1. Google Cloud VPC & End-to-End Topology
+## 1. Google Cloud VPC & End-to-End Architecture
 
-```text
-OUTSIDE GOOGLE CLOUD                     GOOGLE CLOUD (geagent-sasfar-ooc / us-central1)
-────────────────────                     ──────────────────────────────────────────────
-[local-mac-agent :8090] ──HTTP/A2A──► [External ALB: 35.209.113.245 + Model Armor (crm-guardrail-tpl)]
-                                                │
-[User Browser (3LO)] ──Consent──► [GitHub OAuth] │
-                                      ▲         ▼
-                                      │  ┌─── VPC: agent-lab-vpc (us-central1) ──────────────────────┐
-                                      │  │ Subnet: agent-lab-subnet (10.10.0.0/24)                   │
-                                      │  │  [crm-agent-id (SPIFFE)] ──► [SWP: crm-swp-egress]        │
-                                      │  │   rev 00011-qcr               10.10.0.40:80               │
-                                      │  │   RAG / Raw KB                crm-swp-policy allowlist    │
-                                      │  │                               (crm-egress-gw-psc: PENDING)│
-                                      │  │ Subnet: agent-lab-proxy-subnet (10.10.1.0/24)             │
-                                      │  └───────────────────────────────┬───────────────────────────┘
-                                      │                                  │
-[Railway: gh-mcp-server] ◄────────────┼──────────────────────────────────┘ (Flow 1: X-GitHub-Token)
- (gh-mcp-server...railway.app/mcp)    │
-        │                             ├──► [GCP Auth Provider Broker]
-        ▼                             │     • gemini-api-key | gh-mcp-token | crm-api-key
-[api.github.com]                      │     • crm-2lo (M2M) | crm-3lo (PKCE) | github-3lo (GitHub)
-                                      │
-        ▲                             ├──► [test-agent-ar (Vertex AI Agent Engine)]
-        └─────────────────────────────┘     ReasoningEngine 8894320367376531456 (Flow 2)
-                                            SPIFFE RuntimeIdentity + Memory Bank + Agent Registry
-```
+![FDE-Agents Google Cloud VPC Architecture](docs/gcp_vpc_architecture_diagram.svg)
 
 ---
 
