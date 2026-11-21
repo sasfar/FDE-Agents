@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FDE-Agents — Google Cloud VPC Topology &amp; End-to-End Flow Animation</title>
+  <style>
+    :root {
+      --gcp-blue: #1a73e8;
+      --gcp-blue-soft: #e8f0fe;
+      --gcp-green: #1e8e3e;
+      --gcp-green-soft: #e6f4ea;
+      --gcp-amber: #f29900;
+      --gcp-amber-soft: #fef7e0;
+      --gcp-red: #d93025;
+      --gcp-red-soft: #fce8e6;
+      --gcp-purple: #8430ce;
+      --gcp-purple-soft: #f3e8fd;
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --border: #dadce0;
+      --text: #202124;
+      --muted: #5f6368;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .page { max-width: 1380px; margin: 0 auto; }
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(60,64,67,.08);
+    }
+    .topbar h1 { margin: 0; font-size: 1.35rem; color: var(--text); }
+    .topbar p { margin: 4px 0 0; font-size: 0.88rem; color: var(--muted); }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .flow-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .flow-btn:hover { border-color: var(--gcp-blue); color: var(--gcp-blue); }
+    .flow-btn.active { background: var(--gcp-blue); color: #fff; border-color: var(--gcp-blue); }
+    .flow-btn.danger.active { background: var(--gcp-red); border-color: var(--gcp-red); }
+    .flow-btn.green.active { background: var(--gcp-green); border-color: var(--gcp-green); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+    }
+    @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+
+    .canvas-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(60,64,67,.08);
+      overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 920px; height: auto; display: block; }
+
+    .node { cursor: pointer; transition: transform 0.15s ease; }
+    .node:hover rect.box { stroke-width: 2.5; filter: drop-shadow(0 2px 6px rgba(26,115,232,0.22)); }
+
+    .edge-base {
+      fill: none;
+      stroke: #cbd5e1;
+      stroke-width: 2;
+    }
+    .edge-active {
+      fill: none;
+      stroke-width: 3.5;
+      stroke-dasharray: 10 8;
+      animation: dashFlow 1.1s linear infinite;
+    }
+    .edge-blue { stroke: var(--gcp-blue); }
+    .edge-green { stroke: var(--gcp-green); }
+    .edge-red { stroke: var(--gcp-red); }
+    .edge-amber { stroke: var(--gcp-amber); }
+
+    @keyframes dashFlow {
+      to { stroke-dashoffset: -36; }
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(60,64,67,.08);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sidebar h2 { margin: 0; font-size: 1.05rem; color: var(--gcp-blue); }
+    .step-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    .step-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+    .step-item.highlight {
+      border-color: var(--gcp-blue);
+      background: var(--gcp-blue-soft);
+    }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pill-blue { background: var(--gcp-blue-soft); color: var(--gcp-blue); }
+    .pill-green { background: var(--gcp-green-soft); color: var(--gcp-green); }
+    .pill-red { background: var(--gcp-red-soft); color: var(--gcp-red); }
+    .pill-amber { background: var(--gcp-amber-soft); color: #b06000; }
+    code {
+      background: #f1f3f4;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #1f2937;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h1>Google Cloud VPC Topology &amp; End-to-End Agent Flow Animation</h1>
+        <p>Project <code>geagent-sasfar-ooc</code> (<code>us-central1</code>) &bull; Click any flow button or component box to inspect live endpoints, IPs, SPIFFE IDs &amp; guardrails</p>
+      </div>
+      <button class="flow-btn" id="toggleAnimBtn" onclick="toggleAnimation()">Pause Animation</button>
+    </div>
+
+    <div class="controls">
+      <button class="flow-btn active" data-flow="flow1" onclick="selectFlow('flow1', this)">1. Flow 1: Mac &rarr; ALB &rarr; Cloud Run &rarr; SWP &rarr; Railway (3LO)</button>
+      <button class="flow-btn green" data-flow="flow2" onclick="selectFlow('flow2', this)">2. Flow 2: Agent Engine &rarr; Memory Bank &rarr; Railway (3LO)</button>
+      <button class="flow-btn danger" data-flow="blocked" onclick="selectFlow('blocked', this)">3. Blocked Paths: Legacy SA / Model Armor 403 / SWP 403 / Pending PSC</button>
+      <button class="flow-btn" data-flow="evals" onclick="selectFlow('evals', this)">4. Eval &amp; Cost Harness: GTA 6 Hillclimb + Context Cache</button>
+    </div>
+
+    <div class="layout">
+      <div class="canvas-card">
+        <svg viewBox="0 0 1060 670" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#1a73e8" />
+            </marker>
+            <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#1e8e3e" />
+            </marker>
+            <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#d93025" />
+            </marker>
+            <marker id="arrow-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
+            </marker>
+          </defs>
+
+          <!-- ZONE A: OUTSIDE GOOGLE CLOUD -->
+          <rect x="14" y="16" width="235" height="638" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4" stroke-width="1.5" />
+          <text x="28" y="38" font-size="12" font-weight="700" fill="#475569">OUTSIDE GOOGLE CLOUD</text>
+
+          <!-- ZONE B & C: GOOGLE CLOUD PROJECT -->
+          <rect x="270" y="16" width="776" height="638" rx="12" fill="#f0f7ff" stroke="#1a73e8" stroke-width="1.8" />
+          <text x="286" y="38" font-size="12" font-weight="700" fill="#1a73e8">GOOGLE CLOUD PROJECT: geagent-sasfar-ooc (us-central1)</text>
+
+          <!-- VPC BOX: agent-lab-vpc -->
+          <rect x="290" y="162" width="470" height="318" rx="10" fill="#ffffff" stroke="#1e8e3e" stroke-dasharray="7 4" stroke-width="1.8" />
+          <text x="304" y="182" font-size="11.5" font-weight="700" fill="#1e8e3e">VPC: agent-lab-vpc (us-central1)</text>
+
+          <!-- SUBNET 1: agent-lab-subnet -->
+          <rect x="306" y="196" width="438" height="178" rx="8" fill="#e6f4ea" stroke="#34a853" stroke-width="1.2" />
+          <text x="318" y="214" font-size="11" font-weight="700" fill="#137333">Subnet: agent-lab-subnet (10.10.0.0/24)</text>
+
+          <!-- SUBNET 2: agent-lab-proxy-subnet -->
+          <rect x="306" y="388" width="438" height="76" rx="8" fill="#fef7e0" stroke="#f29900" stroke-width="1.2" />
+          <text x="318" y="406" font-size="11" font-weight="700" fill="#b06000">Proxy-Only Subnet: agent-lab-proxy-subnet (10.10.1.0/24 | REGIONAL_MANAGED_PROXY)</text>
+          <text x="318" y="426" font-size="10.5" fill="#5f6368">Reserved Envoy data plane for Secure Web Proxy (crm-swp-egress) &amp; Regional ALB</text>
+          <text x="318" y="444" font-size="10.5" fill="#5f6368">Direct VPC Egress range: 10.10.0.16/28 (Cloud Run serverless-ipv4)</text>
+
+          <!-- BASE EDGES -->
+          <path id="e-mac-alb" class="edge-base" d="M 232 105 L 306 105" marker-end="url(#arrow-gray)" />
+          <path id="e-alb-crid" class="edge-base" d="M 415 140 L 415 228" marker-end="url(#arrow-gray)" />
+          <path id="e-crid-swp" class="edge-base" d="M 505 275 L 556 275" marker-end="url(#arrow-gray)" />
+          <path id="e-swp-railway" class="edge-base" d="M 642 315 L 642 520 L 232 520" marker-end="url(#arrow-gray)" />
+          <path id="e-railway-gh" class="edge-base" d="M 131 552 L 131 584" marker-end="url(#arrow-gray)" />
+          <path id="e-crid-broker" class="edge-base" d="M 415 316 L 415 512 L 792 512" marker-end="url(#arrow-gray)" />
+          <path id="e-ar-broker" class="edge-base" d="M 885 292 L 885 480" marker-end="url(#arrow-gray)" />
+          <path id="e-ar-railway" class="edge-base" d="M 885 292 L 885 572 L 232 572 L 232 528" marker-end="url(#arrow-gray)" />
+          <path id="e-legacy-broker" class="edge-base" d="M 885 140 L 885 180 L 995 180 L 995 512 L 965 512" marker-end="url(#arrow-gray)" />
+          <path id="e-crid-psc" class="edge-base" d="M 470 316 L 556 340" marker-end="url(#arrow-gray)" />
+
+          <!-- NODES: OUTSIDE GCP -->
+          <g class="node" onclick="inspectNode('mac')">
+            <rect class="box" x="28" y="64" width="204" height="82" rx="8" fill="#ffffff" stroke="#475569" stroke-width="1.6" />
+            <text x="40" y="86" font-size="12" font-weight="700" fill="#202124">Desktop: local-mac-agent</text>
+            <text x="40" y="104" font-size="10.5" fill="#5f6368">macOS localhost:8090</text>
+            <text x="40" y="121" font-size="10.5" fill="#1a73e8">A2A + Local MCP Client</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('browser')">
+            <rect class="box" x="28" y="172" width="204" height="72" rx="8" fill="#ffffff" stroke="#475569" stroke-width="1.4" />
+            <text x="40" y="194" font-size="12" font-weight="700" fill="#202124">User Browser (3LO)</text>
+            <text x="40" y="212" font-size="10.5" fill="#5f6368">GitHub OAuth Consent</text>
+            <text x="40" y="229" font-size="10.5" fill="#1a73e8">App: Ov23lichygy8VMPnfuLZ</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('evals')">
+            <rect class="box" x="28" y="272" width="204" height="84" rx="8" fill="#f3e8fd" stroke="#8430ce" stroke-width="1.5" />
+            <text x="40" y="294" font-size="12" font-weight="700" fill="#681da8">Eval &amp; Hillclimb Harness</text>
+            <text x="40" y="312" font-size="10.5" fill="#5f6368">eval_agents.py | eval_gaming_suite</text>
+            <text x="40" y="329" font-size="10.5" fill="#681da8">gta_eval_harness (k=3 Alpha)</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('railway')">
+            <rect class="box" x="28" y="476" width="204" height="76" rx="8" fill="#ffffff" stroke="#1e8e3e" stroke-width="1.8" />
+            <text x="40" y="498" font-size="12" font-weight="700" fill="#137333">Railway: gh-mcp-server</text>
+            <text x="40" y="516" font-size="10.5" fill="#5f6368">gh-mcp-server...railway.app/mcp</text>
+            <text x="40" y="533" font-size="10.5" fill="#1e8e3e">Bearer + X-GitHub-Token (3LO)</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('github')">
+            <rect class="box" x="28" y="584" width="204" height="54" rx="8" fill="#ffffff" stroke="#202124" stroke-width="1.5" />
+            <text x="40" y="606" font-size="12" font-weight="700" fill="#202124">GitHub REST API</text>
+            <text x="40" y="624" font-size="10.5" fill="#5f6368">https://api.github.com (/user, /repos)</text>
+          </g>
+
+          <!-- NODES: GCP EDGE -->
+          <g class="node" onclick="inspectNode('alb')">
+            <rect class="box" x="306" y="58" width="268" height="82" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-width="1.8" />
+            <text x="318" y="80" font-size="12" font-weight="700" fill="#1a73e8">External ALB + Model Armor</text>
+            <text x="318" y="98" font-size="10.5" fill="#202124">http://35.209.113.245 (crm-agent-id-bs)</text>
+            <text x="318" y="115" font-size="10.5" fill="#d93025">Ingress Guard: crm-guardrail-tpl (403 blocks)</text>
+            <text x="318" y="131" font-size="10" fill="#b06000">Note: IAP unset on HTTP ALB</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('legacy')">
+            <rect class="box" x="780" y="58" width="246" height="82" rx="8" fill="#fce8e6" stroke="#d93025" stroke-width="1.5" />
+            <text x="792" y="80" font-size="12" font-weight="700" fill="#c5221f">test-agent-cr (Cloud Run)</text>
+            <text x="792" y="98" font-size="10.5" fill="#5f6368">Legacy Compute SA (No SPIFFE)</text>
+            <text x="792" y="115" font-size="10.5" fill="#c5221f">SEC-01: DENIED by Auth Broker</text>
+          </g>
+
+          <!-- NODES: INSIDE agent-lab-subnet -->
+          <g class="node" onclick="inspectNode('crid')">
+            <rect class="box" x="320" y="228" width="185" height="88" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-width="1.8" />
+            <text x="332" y="250" font-size="12" font-weight="700" fill="#1a73e8">crm-agent-id</text>
+            <text x="332" y="267" font-size="10.5" fill="#202124">Cloud Run (SPIFFE ID)</text>
+            <text x="332" y="283" font-size="10" fill="#5f6368">Ingress: internal-and-clb</text>
+            <text x="332" y="299" font-size="10" fill="#1e8e3e">RAG / Raw KB / SWP Egress</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('swp')">
+            <rect class="box" x="556" y="228" width="174" height="86" rx="8" fill="#ffffff" stroke="#1e8e3e" stroke-width="1.8" />
+            <text x="568" y="248" font-size="11.5" font-weight="700" fill="#137333">SWP: crm-swp-egress</text>
+            <text x="568" y="265" font-size="10.5" fill="#202124">10.10.0.40:80 (Active)</text>
+            <text x="568" y="281" font-size="10" fill="#5f6368">crm-swp-policy allowlist</text>
+            <text x="568" y="297" font-size="10" fill="#1a73e8">Gateway: crm-egress-swp-gw</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('psc')">
+            <rect class="box" x="556" y="322" width="174" height="44" rx="6" fill="#fef7e0" stroke="#f29900" stroke-width="1.3" />
+            <text x="566" y="340" font-size="10.5" font-weight="700" fill="#b06000">PSC: crm-egress-gw-psc</text>
+            <text x="566" y="356" font-size="10" fill="#b06000">10.10.0.10 (STATUS: PENDING)</text>
+          </g>
+
+          <!-- NODES: MANAGED AGENT ENGINE, REGISTRY, BROKER, GEMINI -->
+          <g class="node" onclick="inspectNode('ar')">
+            <rect class="box" x="780" y="196" width="246" height="96" rx="8" fill="#ffffff" stroke="#1e8e3e" stroke-width="1.8" />
+            <text x="792" y="218" font-size="12" font-weight="700" fill="#137333">test-agent-ar (Agent Engine)</text>
+            <text x="792" y="236" font-size="10.5" fill="#202124">ReasoningEngine 8894320367376531456</text>
+            <text x="792" y="253" font-size="10.5" fill="#1e8e3e">SPIFFE RuntimeIdentity + Memory Bank</text>
+            <text x="792" y="270" font-size="10" fill="#5f6368">Governed by crm-egress-gw + Registry</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('registry')">
+            <rect class="box" x="780" y="314" width="246" height="72" rx="8" fill="#ffffff" stroke="#5f6368" stroke-width="1.4" />
+            <text x="792" y="336" font-size="11.5" font-weight="700" fill="#202124">Cloud Agent Registry</text>
+            <text x="792" y="353" font-size="10" fill="#5f6368">us-central1: crm-agent-id, test-agent-ar</text>
+            <text x="792" y="369" font-size="10" fill="#1a73e8">Binds RuntimeIdentity &amp; Gateways</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('gemini')">
+            <rect class="box" x="780" y="404" width="246" height="62" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.4" />
+            <text x="792" y="425" font-size="11.5" font-weight="700" fill="#1a73e8">Gemini API &amp; Context Cache</text>
+            <text x="792" y="443" font-size="10" fill="#202124">3.5-flash-lite | 3.8-flash | 3.1-pro</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('broker')">
+            <rect class="box" x="780" y="480" width="246" height="96" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-width="1.8" />
+            <text x="792" y="502" font-size="12" font-weight="700" fill="#1a73e8">GCP Auth Provider Broker</text>
+            <text x="792" y="520" font-size="10" fill="#202124">Stage 1: gemini-api-key, gh-mcp-token</text>
+            <text x="792" y="536" font-size="10" fill="#202124">Stage 2 (2LO): crm-2lo</text>
+            <text x="792" y="552" font-size="10" fill="#1e8e3e">Stage 3 (3LO): crm-3lo, github-3lo</text>
+          </g>
+
+          <g class="node" onclick="inspectNode('crmmock')">
+            <rect class="box" x="306" y="582" width="440" height="56" rx="8" fill="#ffffff" stroke="#5f6368" stroke-width="1.4" />
+            <text x="318" y="604" font-size="11.5" font-weight="700" fill="#202124">crm-tool-mock &amp; Vertex AI Experiments (agent-security-lab-eval)</text>
+            <text x="318" y="622" font-size="10" fill="#5f6368">Mock OAuth/CRM APIs + EvalTask Quality/Security Scorecard Logging</text>
+          </g>
+        </svg>
+
+        <div class="legend">
+          <span><span class="dot" style="background:#1a73e8"></span>Flow 1 / Ingress / Auth Broker</span>
+          <span><span class="dot" style="background:#1e8e3e"></span>Flow 2 / SWP Egress / Railway MCP</span>
+          <span><span class="dot" style="background:#d93025"></span>Blocked / Denied Security Control</span>
+          <span><span class="dot" style="background:#f29900"></span>Pending PSC / Proxy-Only Subnet</span>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <h2 id="panelTitle">Flow 1: Cloud Run &rarr; SWP &rarr; Railway (3LO)</h2>
+        <div id="panelSummary" style="font-size:0.86rem;color:#5f6368;">
+          End-to-end zero-secret execution from Mac through ALB + Model Armor, SPIFFE Auth Broker, and VPC Secure Web Proxy to Railway and GitHub.
+        </div>
+        <ul class="step-list" id="stepList"></ul>
+        <div id="nodeInspector" class="step-item" style="background:#f8f9fa;">
+          <div class="pill pill-blue">Node Inspector</div>
+          <div id="nodeInspectorText">Click any box in the VPC diagram to inspect its exact endpoint, identity, and role.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FLOWS = {
+      flow1: {
+        title: "Flow 1: Mac → ALB → Cloud Run → SWP → Railway (3LO)",
+        summary: "Cloud Run (crm-agent-id) routes outbound Railway MCP calls via agent-lab-vpc Secure Web Proxy (10.10.0.40:80) using a user-delegated github-3lo token.",
+        edges: [
+          ["e-mac-alb", "edge-blue", "arrow-blue"],
+          ["e-alb-crid", "edge-blue", "arrow-blue"],
+          ["e-crid-broker", "edge-blue", "arrow-blue"],
+          ["e-crid-swp", "edge-green", "arrow-green"],
+          ["e-swp-railway", "edge-green", "arrow-green"],
+          ["e-railway-gh", "edge-green", "arrow-green"],
+        ],
+        steps: [
+          ["pill-blue", "1. Edge Ingress", "local-mac-agent sends request to http://35.209.113.245. Model Armor (crm-guardrail-tpl) inspects prompt."],
+          ["pill-blue", "2. SPIFFE Auth Broker", "crm-agent-id uses its SPIFFE AGENT_IDENTITY to fetch github-3lo (gho_...) + gh-mcp-token from GCP Broker."],
+          ["pill-green", "3. VPC SWP Egress", "crm-agent-id connects via Direct VPC Egress to crm-swp-egress (10.10.0.40:80) backed by crm-egress-swp-gw."],
+          ["pill-green", "4. Railway → GitHub API", "SWP allows gh-mcp-server-production.up.railway.app; Railway calls api.github.com (/user, /user/repos) and returns live data."],
+        ]
+      },
+      flow2: {
+        title: "Flow 2: Agent Engine → Memory Bank → Railway (3LO)",
+        summary: "Vertex AI Agent Engine (test-agent-ar) uses its SPIFFE RuntimeIdentity, retrieves user-scoped Memory Bank facts, and invokes Railway MCP.",
+        edges: [
+          ["e-ar-broker", "edge-green", "arrow-green"],
+          ["e-ar-railway", "edge-green", "arrow-green"],
+          ["e-railway-gh", "edge-green", "arrow-green"],
+        ],
+        steps: [
+          ["pill-green", "1. SPIFFE RuntimeIdentity", "test-agent-ar (ReasoningEngine 8894320367376531456) is registered in Agent Registry (SEC-07)."],
+          ["pill-green", "2. Memory Bank Retrieval", "Retrieves user-scoped facts (e.g. asfar = 477.9ms; alice = 0 hits isolation) before LLM inference."],
+          ["pill-green", "3. Broker + Railway MCP", "Fetches github-3lo + gh-mcp-token from Auth Broker and executes gh_whoami against Railway -> api.github.com."],
+        ]
+      },
+      blocked: {
+        title: "Blocked & Guardrail Paths (Zero-Trust Verification)",
+        summary: "Verifies every negative security boundary across Legacy SA, Edge Model Armor, SWP URL allowlist, and Pending PSC.",
+        edges: [
+          ["e-legacy-broker", "edge-red", "arrow-red"],
+          ["e-mac-alb", "edge-red", "arrow-red"],
+          ["e-crid-swp", "edge-red", "arrow-red"],
+          ["e-crid-psc", "edge-amber", "arrow-gray"],
+        ],
+        steps: [
+          ["pill-red", "SEC-01: Legacy SA Denied", "test-agent-cr (no SPIFFE ID) is rejected by GCP Auth Broker (DENIED_BY_GCP_BROKER)."],
+          ["pill-red", "GAME-06 / SEC-05: Edge 403", "Phishing & prompt-injection payloads are blocked at 35.209.113.245 with 403 Forbidden (0 LLM tokens spent)."],
+          ["pill-red", "SEC-09: SWP 403 & Scope Block", "Unapproved domains (example.com) get 403 at SWP; delete_repo scope is blocked by github-3lo."],
+          ["pill-amber", "Pending PSC (10.10.0.10)", "crm-egress-gw-psc remains PENDING on tenant attachment, which is why Cloud Run uses SWP (10.10.0.40:80)."],
+        ]
+      },
+      evals: {
+        title: "Eval & Cost Harness (GTA 6 Hillclimb + Context Cache)",
+        summary: "Compares ungrounded (<5.0) vs. RAG/Raw KB/Memory Bank across gemini-3.5-flash-lite ($0.12/1k), 3.8-flash, and 3.1-pro-preview.",
+        edges: [
+          ["e-mac-alb", "edge-blue", "arrow-blue"],
+          ["e-alb-crid", "edge-blue", "arrow-blue"],
+          ["e-crid-broker", "edge-blue", "arrow-blue"],
+          ["e-ar-broker", "edge-green", "arrow-green"],
+        ],
+        steps: [
+          ["pill-blue", "1. Grounded Datasets", "gaming_market_kb.md + gta6_scenarios.json test Console vs. PC, Online vs. Offline, and Marketing ROI."],
+          ["pill-blue", "2. GTA 6 Hillclimb (k=3)", "Grounded raw_kb lifted overall mean from 2.68 -> 3.83/5.00 (groundedness 5.00, net-margin 4.93)."],
+          ["pill-green", "3. Cost & Cache Lens", "gemini-3.5-flash-lite ($0.12/1k) vs 3.8-flash ($2.73/1k) vs 3.1-pro ($11.05/1k); Context Cache saves 65.8%."],
+        ]
+      }
+    };
+
+    const NODES = {
+      mac: "<b>local-mac-agent</b><br/>Runs on macOS <code>localhost:8090</code>. Exposes local A2A (<code>/.well-known/agent.json</code>) &amp; MCP tools and calls GCP ALB <code>35.209.113.245</code>.",
+      browser: "<b>User Browser (3LO)</b><br/>Completes GitHub OAuth consent for App <code>Ov23lichygy8VMPnfuLZ</code>, redirecting to Google's <code>oauthcallback</code> then <code>35.209.113.245/oauth/callback</code>.",
+      evals: "<b>Eval &amp; Hillclimb Harness</b><br/><code>eval_agents.py</code>, <code>eval_cost_and_memory.py</code>, <code>eval_memory_bank.py</code>, <code>eval_gaming_suite.py</code>, and <code>gta_eval_harness/run_gta_hillclimb.py</code>.",
+      railway: "<b>Railway: gh-mcp-server</b><br/>Bun function at <code>https://gh-mcp-server-production.up.railway.app/mcp</code>. Validates <code>Authorization: Bearer</code> and forwards per-request <code>X-GitHub-Token</code> to GitHub.",
+      github: "<b>GitHub REST API</b><br/><code>https://api.github.com</code> serving live <code>/user</code> and <code>/user/repos</code> responses using the user's 3LO <code>gho_...</code> token.",
+      alb: "<b>External ALB + Model Armor</b><br/><code>http://35.209.113.245</code> (<code>crm-agent-id-bs</code>) with <code>crm-alb-ma-extension</code> (<code>crm-guardrail-tpl</code>, <code>failOpen: false</code>). Note: IAP is currently unset on HTTP ALB.",
+      legacy: "<b>test-agent-cr (Cloud Run)</b><br/>Legacy Compute SA negative control (<code>SEC-01</code>). Rejected by GCP Auth Provider Broker because it has no SPIFFE <code>AGENT_IDENTITY</code>.",
+      crid: "<b>crm-agent-id (Cloud Run)</b><br/>Revision <code>crm-agent-id-00011-qcr</code> in <code>agent-lab-vpc</code> with <code>internal-and-cloud-load-balancing</code>, SPIFFE ID, RAG/Raw KB grounding, and <code>EGRESS_GW_PROXY_IP=10.10.0.40:80</code>.",
+      swp: "<b>Secure Web Proxy: crm-swp-egress</b><br/><code>SECURE_WEB_GATEWAY</code> at <code>10.10.0.40:80</code> in <code>agent-lab-subnet</code>, governed by <code>crm-swp-policy</code> (<code>allow-mcp-and-crm</code>) and linked to <code>selfManaged</code> <code>crm-egress-swp-gw</code>.",
+      psc: "<b>PSC Forwarding Rule: crm-egress-gw-psc</b><br/>IP <code>10.10.0.10</code> targeting tenant <code>unitkind1-swp-mtls-psc-sa</code>. Stuck in <code>pscConnectionStatus: PENDING</code>, replaced by <code>crm-swp-egress</code> for Cloud Run.",
+      ar: "<b>test-agent-ar (Vertex AI Agent Engine)</b><br/><code>ReasoningEngine 8894320367376531456</code> with SPIFFE <code>RuntimeIdentity</code>, Memory Bank support, and live Railway 3LO MCP calls.",
+      registry: "<b>Cloud Agent Registry</b><br/><code>//agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1</code> cataloging <code>crm-agent-id</code>, <code>test-agent-ar</code>, and <code>Workspace Agent</code>.",
+      gemini: "<b>Gemini API &amp; Context Cache</b><br/><code>generativelanguage.googleapis.com</code> accessed via vaulted <code>gemini-api-key</code> across <code>gemini-3.5-flash-lite</code>, <code>3.8-flash</code>, and <code>3.1-pro-preview</code>.",
+      broker: "<b>GCP Auth Provider Broker</b><br/>Vaults all 6 providers: <code>gemini-api-key</code>, <code>gh-mcp-token</code>, <code>crm-api-key</code>, <code>crm-2lo</code>, <code>crm-3lo</code>, and <code>github-3lo</code>.",
+      crmmock: "<b>crm-tool-mock &amp; Vertex AI Experiments</b><br/>Mock CRM/OAuth server (<code>2LO</code>/<code>3LO</code>) plus Vertex AI Experiments (<code>agent-security-lab-eval</code>)."
+    };
+
+    let animPaused = false;
+    function selectFlow(key, btn) {
+      document.querySelectorAll(".controls .flow-btn").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+      document.querySelectorAll(".edge-base").forEach(e => {
+        e.setAttribute("class", "edge-base");
+        e.setAttribute("marker-end", "url(#arrow-gray)");
+      });
+      const f = FLOWS[key];
+      document.getElementById("panelTitle").textContent = f.title;
+      document.getElementById("panelSummary").textContent = f.summary;
+      f.edges.forEach(([id, cls, marker]) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.setAttribute("class", `edge-base edge-active ${cls}`);
+          el.setAttribute("marker-end", `url(#${marker})`);
+        }
+      });
+      const list = document.getElementById("stepList");
+      list.innerHTML = f.steps.map(([pill, title, desc]) =>
+        `<li class="step-item"><div class="pill ${pill}">${title}</div><div>${desc}</div></li>`
+      ).join("");
+    }
+
+    function inspectNode(id) {
+      document.getElementById("nodeInspectorText").innerHTML = NODES[id] || "";
+    }
+
+    function toggleAnimation() {
+      animPaused = !animPaused;
+      document.querySelectorAll(".edge-active").forEach(e => {
+        e.style.animationPlayState = animPaused ? "paused" : "running";
+      });
+      document.getElementById("toggleAnimBtn").textContent = animPaused ? "Resume Animation" : "Pause Animation";
+    }
+
+    selectFlow("flow1", document.querySelector(".controls .flow-btn"));
+  </script>
+</body>
+</html>
