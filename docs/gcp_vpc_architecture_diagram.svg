@@ -77,10 +77,10 @@
     <rect x="34" y="332" width="207" height="106" rx="8" fill="#ffffff" stroke="#8430ce" stroke-width="1.6"/>
     <rect x="34" y="332" width="207" height="24" rx="8" fill="#8430ce"/>
     <text x="44" y="348" font-size="11.5" font-weight="700" fill="#ffffff">Eval &amp; Hillclimb Harness</text>
-    <text x="44" y="372" font-size="10.5" font-weight="600" fill="#202124">eval_agents.py (SEC-01..10)</text>
+    <text x="44" y="372" font-size="10.5" font-weight="600" fill="#202124">eval_agents.py (SEC-01..11: 10/11)</text>
     <text x="44" y="388" font-size="10.5" fill="#5f6368">eval_cost_and_memory.py</text>
-    <text x="44" y="404" font-size="10.5" fill="#5f6368">eval_gaming_suite.py</text>
-    <text x="44" y="420" font-size="10.5" fill="#8430ce">gta_eval_harness (k=3 Alpha)</text>
+    <text x="44" y="404" font-size="10.5" fill="#5f6368">eval_gaming_suite.py (5.000 RAG)</text>
+    <text x="44" y="420" font-size="10.5" fill="#8430ce">gta_eval_harness (k=3, 3 runs)</text>
   </g>
 
   <g filter="url(#shadow)">
@@ -117,9 +117,9 @@
     <rect x="320" y="282" width="190" height="106" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-width="1.8"/>
     <rect x="320" y="282" width="190" height="24" rx="8" fill="#1a73e8"/>
     <text x="330" y="298" font-size="11.5" font-weight="700" fill="#ffffff">Cloud Run: crm-agent-id</text>
-    <text x="330" y="322" font-size="10.5" font-weight="700" fill="#1a73e8">SPIFFE AGENT_IDENTITY</text>
-    <text x="330" y="338" font-size="10" fill="#202124">Ingress: internal-and-clb</text>
-    <text x="330" y="354" font-size="10" fill="#202124">RAG / Raw KB + Usage Telemetry</text>
+    <text x="330" y="322" font-size="10.5" font-weight="700" fill="#1a73e8">SPIFFE AGENT_IDENTITY (00012-drl)</text>
+    <text x="330" y="338" font-size="10" fill="#137333">AuthN: AGENT_CALLER_TOKEN (401)</text>
+    <text x="330" y="354" font-size="10" fill="#202124">RAG regex (5.000) / Raw KB + Usage</text>
     <text x="330" y="370" font-size="10" font-weight="600" fill="#1e8e3e">EGRESS_GW=10.10.0.40:80</text>
   </g>
 
@@ -127,9 +127,9 @@
     <rect x="538" y="282" width="196" height="92" rx="8" fill="#ffffff" stroke="#1e8e3e" stroke-width="1.8"/>
     <rect x="538" y="282" width="196" height="24" rx="8" fill="#1e8e3e"/>
     <text x="548" y="298" font-size="11.5" font-weight="700" fill="#ffffff">SWP: crm-swp-egress</text>
-    <text x="548" y="322" font-size="10.5" font-weight="700" fill="#137333">10.10.0.40:80 (ACTIVE)</text>
+    <text x="548" y="322" font-size="10.5" font-weight="700" fill="#137333">10.10.0.40:80 (crm-egress-swp-gw)</text>
     <text x="548" y="338" font-size="10" fill="#202124">crm-swp-policy allowlist (403)</text>
-    <text x="548" y="354" font-size="10" fill="#1a73e8">Gateway: crm-egress-swp-gw</text>
+    <text x="548" y="354" font-size="10" fill="#b06000">SEC-08: default_denied (no binding)</text>
   </g>
 
   <g filter="url(#shadow)">
@@ -162,8 +162,8 @@
     <rect x="782" y="332" width="246" height="72" rx="8" fill="#ffffff" stroke="#5f6368" stroke-width="1.5"/>
     <rect x="782" y="332" width="246" height="22" rx="8" fill="#5f6368"/>
     <text x="792" y="347" font-size="11" font-weight="700" fill="#ffffff">Cloud Agent Registry</text>
-    <text x="792" y="370" font-size="10" fill="#202124">us-central1: crm-agent-id, test-agent-ar</text>
-    <text x="792" y="386" font-size="10" fill="#1a73e8">Binds RuntimeIdentity &amp; Gateways</text>
+    <text x="792" y="370" font-size="10" fill="#202124">crm-agent-id, test-agent-ar, railway-gh-mcp</text>
+    <text x="792" y="386" font-size="10" fill="#b06000">SEC-08: needs bindings.create IAM</text>
   </g>
 
   <g filter="url(#shadow)">

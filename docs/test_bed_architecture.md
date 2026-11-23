@@ -19,7 +19,7 @@ flowchart TB
     end
 
     subgraph EDGE["Zone B: GCP Edge & Ingress Security (us-central1)"]
-        ALB["External ALB (crm-agent-id-fr -> crm-agent-id-bs)\nhttp://35.209.113.245 (HTTP, IAP currently UNSET)"]
+        ALB["External ALB (crm-agent-id-fr -> crm-agent-id-bs)\nhttp://35.209.113.245 (HTTP)"]
         ALB_MA["Model Armor AuthzExtension\ncrm-alb-ma-extension\ntemplate: crm-guardrail-tpl | failOpen: false"]
         INGRESS_GW["Agent Gateway Ingress\ncrm-ingress-gw (CLIENT_TO_AGENT)\ncrm-ma-extension + crm-ma-authz-policy"]
     end
@@ -32,19 +32,19 @@ flowchart TB
     end
 
     subgraph GCP_AGENTS["Zone D: GCP Agent Runtimes & Mock Services (us-central1)"]
-        CR_ID["crm-agent-id (Cloud Run rev 00009-zv9)\nIngress: internal-and-cloud-load-balancing\nIdentity: SPIFFE AGENT_IDENTITY\nEGRESS_GW_PROXY_IP=10.10.0.40:80"]
-        AR["test-agent-ar (Vertex AI Agent Engine)\nReasoningEngine 8894320367376531456\nIdentity: SPIFFE RuntimeIdentity\nquery(mode='llm' | 'mcp')"]
+        CR_ID["crm-agent-id (Cloud Run rev 00012-drl)\nIngress: internal-and-cloud-load-balancing\nAuthN: enforce_caller_authn (AGENT_CALLER_TOKEN -> 401)\nIdentity: SPIFFE AGENT_IDENTITY\nRAG regex (5.000) | EGRESS_GW_PROXY_IP=10.10.0.40:80"]
+        AR["test-agent-ar (Vertex AI Agent Engine)\nReasoningEngine 8894320367376531456\nIdentity: SPIFFE RuntimeIdentity + Memory Bank\nquery(mode='llm' | 'mcp')"]
         CR_LEGACY["test-agent-cr (Cloud Run)\nhttps://test-agent-cr-5im2gb6gtq-uc.a.run.app\nIdentity: Legacy Compute SA (Negative Control)"]
         CRM_MOCK["crm-tool-mock (Cloud Run)\nhttps://crm-tool-mock-5im2gb6gtq-uc.a.run.app\nMock CRM + OAuth /authorize & /oauth/token"]
     end
 
     subgraph GCP_GOV["Zone E: Governance, Auth Broker, Models & Evals"]
-        SWP_GW["selfManaged AgentGateway\ncrm-egress-swp-gw -> crm-swp-egress"]
+        SWP_GW["selfManaged AgentGateway\ncrm-egress-swp-gw -> crm-swp-egress\n(default_denied pending SEC-08 binding)"]
         MANAGED_GW["googleManaged AgentGateway\ncrm-egress-gw (AGENT_TO_ANYWHERE)\nModel Armor: crm-egress-guardrail-tpl"]
-        REGISTRY["Cloud Agent Registry\n//agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1"]
+        REGISTRY["Cloud Agent Registry (us-central1)\ncrm-agent-id, test-agent-ar, railway-gh-mcp"]
         BROKER["GCP Auth Provider Broker\nagentidentitycredentials.googleapis.com"]
         GEMINI["Gemini API\ngenerativelanguage.googleapis.com\ngemini-3.5-flash-lite | 3.8-flash | 3.1-pro-preview"]
-        EVALS["Eval Suites\neval_agents.py (Vertex AI EvalTask + SEC-01..07)\neval_cost_and_memory.py (Cost, Cache, SQLite Memory)"]
+        EVALS["Eval Suites\neval_agents.py (Vertex AI EvalTask + SEC-01..11)\neval_cost_and_memory.py | eval_gaming_suite.py | gta_eval_harness"]
     end
 
     MAC -->|"HTTP / A2A"| ALB
@@ -91,10 +91,11 @@ flowchart TB
 ### B. Inside Google Cloud (`geagent-sasfar-ooc` / `us-central1`)
 | Component | Platform & Networking | Endpoint / Resource Name | Identity & Registration | Status |
 |---|---|---|---|---|
-| **`crm-agent-id`** | Cloud Run (`agent-lab-vpc`, `internal-and-cloud-load-balancing`) | Direct `*.run.app` (404 from internet); reachable via ALB `http://35.209.113.245` | **SPIFFE `AGENT_IDENTITY`** (`principal://agents.global.org-91854922466.system.id.goog/.../services/crm-agent-id`), registered in Agent Registry | Live (`rev 00009-zv9`); Flow 1 verified via SWP `10.10.0.40:80` |
-| **`test-agent-ar`** | Vertex AI Agent Engine | `projects/172882039333/locations/us-central1/reasoningEngines/8894320367376531456` | **SPIFFE `RuntimeIdentity`** registered in Agent Registry (`SEC-07`) | Live; Flow 2 (`mode="mcp"`) & Layer 1 (`5.000/5.000`) verified |
+| **`crm-agent-id`** | Cloud Run (`agent-lab-vpc`, `internal-and-cloud-load-balancing`) | Direct `*.run.app` (404 from internet); reachable via ALB `http://35.209.113.245` | **SPIFFE `AGENT_IDENTITY`** (`principal://agents.global.org-91854922466.system.id.goog/.../services/crm-agent-id`) + `enforce_caller_authn` (`AGENT_CALLER_TOKEN` -> `401`) | Live (`rev 00012-drl`); RAG regex (`5.000` groundedness) + SWP egress (`10.10.0.40:80`) |
+| **`test-agent-ar`** | Vertex AI Agent Engine | `projects/172882039333/locations/us-central1/reasoningEngines/8894320367376531456` | **SPIFFE `RuntimeIdentity`** registered in Agent Registry (`SEC-07`) | Live; Flow 2 (`mode="mcp"`), Memory Bank, & Layer 1 (`5.000/5.000`) verified |
 | **`test-agent-cr`** | Cloud Run (`ingress: all`) | `https://test-agent-cr-5im2gb6gtq-uc.a.run.app` | Legacy Compute SA (`172882039333-compute@developer.gserviceaccount.com`) | Negative control (`SEC-01` denied by Broker) |
 | **`crm-tool-mock`** | Cloud Run | `https://crm-tool-mock-5im2gb6gtq-uc.a.run.app` | Cloud Run service | Mock CRM + OAuth `/authorize` & `/oauth/token` |
+| **`railway-gh-mcp`** | External MCP in Agent Registry | `urn:mcp:projects-172882039333:projects:172882039333:locations:us-central1:agentregistry:services:railway-gh-mcp` | Registered in `us-central1` Agent Registry | Registered; awaiting `agentregistry.bindings.create` IAM permission for `SEC-08` |
 | **Workspace Agent** | Google-managed | `https://workspaceagent.googleapis.com/a2a` | Registered in Agent Registry (`A2A_AGENT`) | Present in `us-central1` Agent Registry |
 
 ---
@@ -111,11 +112,11 @@ flowchart TB
 | **3-Legged OAuth + PKCE (Mock CRM)** | `crm-3lo` | `crm-tool-mock` (`/oauth/authorize`, PKCE `S256`) | `allowedScopes: deals:read`; `blockedScopes: deals:admin` | Per-user consent & isolation (`alice` vs. other users) |
 | **3-Legged OAuth (Real GitHub)** | `github-3lo` | `github.com/login/oauth` -> Railway -> `api.github.com` | `allowedScopes: read:user,repo`; `blockedScopes: delete_repo,admin:org` | `asfar` `ALLOWED` (`gh_whoami`, `gh_list_my_repos`); `alice` `CONSENT_REQUIRED`; `delete_repo` `DENIED_BY_GCP_BROKER` |
 
-> **Current Ingress AuthN Gap (To Harden Next):**
-> `crm-agent-id` has `roles/run.invoker` restricted to `asfar.shah@insight.com`, **but** the External ALB (`http://35.209.113.245` / `crm-agent-id-bs`) is HTTP-only with `iap.enabled` unset, and FastAPI does not enforce an inbound token check. Options to close this:
-> 1. **HTTPS + IAP** on `crm-agent-id-bs` (`--iap=enabled`, requires domain + SSL cert).
-> 2. **App-Level AuthN Middleware** in [agent_cr_id/app.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/agent_cr_id/app.py) (Bearer token / Google OIDC JWT, exempting `/health` and `/oauth/callback`).
-> 3. **Cloud Armor IP Allowlist** on `crm-agent-id-bs`.
+> **Ingress AuthN Hardening (Implemented in `rev 00012-drl`):**
+> [agent_cr_id/app.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/agent_cr_id/app.py) enforces `enforce_caller_authn` HTTP middleware requiring `Authorization: Bearer <AGENT_CALLER_TOKEN>`, `X-Agent-Auth: <AGENT_CALLER_TOKEN>`, or `X-Goog-IAP-JWT-Assertion` on all paths except `PUBLIC_AUTH_EXEMPT_PATHS` (`/health`, `/oauth/callback`, `/favicon.ico`, `/.well-known/agent.json`). Verified by `SEC-11` (`status_code=401` on unauthenticated `POST http://35.209.113.245/query`).
+>
+> **Remaining Egress Binding Block (`SEC-08`):**
+> `crm-egress-swp-gw` (`selfManaged` AgentGateway attached to `crm-swp-egress`) enforces `default_denied` (`403 Forbidden`) at SWP until an Agent Registry Binding connects `crm-agent-id` -> `railway-gh-mcp`. `railway-gh-mcp` is registered, and `gcloud agent-registry bindings create` currently awaits `agentregistry.bindings.create` IAM permission on `projects/geagent-sasfar-ooc/locations/us-central1`.
 
 ---
 
@@ -136,5 +137,8 @@ flowchart TB
 
 | Script | What It Evaluates | Key Verified Findings |
 |---|---|---|
-| [eval_agents.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/eval_agents.py) | Layer 1 (`EvalTask` -> `agent-security-lab-eval`) & Layer 2 (`SEC-01..SEC-07`) | `test-agent-ar` `5.000/5.000`; `SEC-01`, `SEC-05`, `SEC-06`, `SEC-07` pass |
+| [eval_agents.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/eval_agents.py) | Layer 1 (`EvalTask` -> `agent-security-lab-eval`) & Layer 2 (`SEC-01..SEC-11`) | `5.000/5.000` across all 3 agents; Layer 2 `10/11` (`SEC-08` awaiting `agentregistry.bindings.create`) |
 | [eval_cost_and_memory.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/eval_cost_and_memory.py) | **Cost Lens** (`gemini-3.5-flash-lite` vs `3.8-flash` vs `3.1-pro-preview`), **Prompt Caching**, **SQLite Memory Persistence** | `3.5-flash-lite` `\$0.26/1k` vs `3.8-flash` `\$4.09/1k` vs `3.1-pro-preview` `\$18.70/1k`; Context Cache saved `65.8%`; SQLite memory cut prompt tokens `65.8%` |
+| [eval_memory_bank.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/eval_memory_bank.py) | Vertex AI Agent Engine Memory Bank (`create`, `retrieve`, `generate`, `asfar` vs `alice`) | `477.9 ms` semantic retrieve, `0` cross-user leakage |
+| [eval_gaming_suite.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/eval_gaming_suite.py) | `none` vs `rag` vs `raw_kb` vs `memory_bank` across 3 Gemini models | `rag` achieves `5.000` Groundedness across all 3 models (`$0.122/1k` on `flash-lite`, `45.0%` fewer prompt tokens than `raw_kb`) |
+| [gta_eval_harness/run_gta_hillclimb.py](file:///Users/asfar.shah/Downloads/SADA/Projects/FDE-Agents/gta_eval_harness/run_gta_hillclimb.py) | 8-rubric GTA 6 sales prediction autorater (`k=3` passes, Krippendorff's Alpha) | `gta_hillclimb_1` (`2.68`) -> `gta_hillclimb_2` (`3.83`, `$5.6225/1k`) -> `gta_hillclimb_3` (`3.04`, `$0.3502/1k`, `2083.1 ms`) |
