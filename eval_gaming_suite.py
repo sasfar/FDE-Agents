@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from typing import Any, Dict, List
 
 from google import genai
@@ -113,6 +114,26 @@ def judge_response(
     }
 
 
+_CALLER_TOKEN = ""
+
+
+def _get_caller_headers() -> Dict[str, str]:
+    global _CALLER_TOKEN
+    if not _CALLER_TOKEN:
+        _CALLER_TOKEN = os.getenv("AGENT_CALLER_TOKEN", "").strip()
+        if not _CALLER_TOKEN:
+            try:
+                svc = json.loads(subprocess.check_output(
+                    ["gcloud", "run", "services", "describe", "crm-agent-id", "--region=us-central1", f"--project={PROJECT_ID}", "--format=json"],
+                    text=True,
+                ))
+                envs = svc["spec"]["template"]["spec"]["containers"][0].get("env", [])
+                _CALLER_TOKEN = next((e.get("value", "") for e in envs if e.get("name") == "AGENT_CALLER_TOKEN"), "")
+            except Exception:
+                _CALLER_TOKEN = ""
+    return {"X-Agent-Auth": _CALLER_TOKEN} if _CALLER_TOKEN else {}
+
+
 def eval_cloud_run_config(
     label: str,
     grounding_mode: str,
@@ -127,6 +148,7 @@ def eval_cloud_run_config(
         r = requests.post(
             f"{CRM_AGENT_URL}/query",
             json={"prompt": row["prompt"], "model": model, "grounding_mode": grounding_mode},
+            headers=_get_caller_headers(),
             timeout=60,
         )
         if r.status_code == 403:

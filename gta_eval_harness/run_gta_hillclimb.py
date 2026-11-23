@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from typing import Any, Dict, List
 
@@ -120,12 +121,26 @@ def main() -> None:
     print(f"  model={args.model} | grounding_mode={args.grounding_mode} | k_passes={args.k_passes}")
     print("=" * 90)
 
+    caller_token = os.getenv("AGENT_CALLER_TOKEN", "").strip()
+    if not caller_token:
+        try:
+            svc = json.loads(subprocess.check_output(
+                ["gcloud", "run", "services", "describe", "crm-agent-id", "--region=us-central1", f"--project={PROJECT_ID}", "--format=json"],
+                text=True,
+            ))
+            envs = svc["spec"]["template"]["spec"]["containers"][0].get("env", [])
+            caller_token = next((e.get("value", "") for e in envs if e.get("name") == "AGENT_CALLER_TOKEN"), "")
+        except Exception:
+            caller_token = ""
+    caller_headers = {"X-Agent-Auth": caller_token} if caller_token else {}
+
     # 1. Collect agent reports
     responses: List[Dict[str, Any]] = []
     for sc in scenarios:
         r = requests.post(
             f"{args.agent_url}/query",
             json={"prompt": sc["prompt"], "model": args.model, "grounding_mode": args.grounding_mode},
+            headers=caller_headers,
             timeout=90,
         )
         r.raise_for_status()

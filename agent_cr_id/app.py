@@ -6,6 +6,7 @@ Both the NEW agent (crm-agent-id, deployed with --functional-type=agent
 this exact same codebase so you can compare their security behavior side by side.
 """
 import base64
+import hmac
 import html
 import json
 import os
@@ -85,6 +86,31 @@ except Exception as exc:
     print(f"Warning: Vertex AI lazy init deferred: {exc}")
 
 app = FastAPI(title=f"Agent Identity Security Lab ({AGENT_NAME})", version="2.0.0")
+
+PUBLIC_AUTH_EXEMPT_PATHS = {"/health", "/oauth/callback", "/favicon.ico", "/.well-known/agent.json"}
+
+
+@app.middleware("http")
+async def enforce_caller_authn(request: Request, call_next):
+    """Require Bearer/X-Agent-Auth token (or IAP assertion) when AGENT_CALLER_TOKEN is configured."""
+    expected = os.getenv("AGENT_CALLER_TOKEN", "").strip()
+    if not expected or request.url.path in PUBLIC_AUTH_EXEMPT_PATHS:
+        return await call_next(request)
+
+    if request.headers.get("x-goog-iap-jwt-assertion"):
+        return await call_next(request)
+
+    auth_hdr = request.headers.get("authorization", "")
+    bearer = auth_hdr[7:].strip() if auth_hdr.lower().startswith("bearer ") else ""
+    agent_hdr = request.headers.get("x-agent-auth", "").strip()
+    candidate = bearer or agent_hdr
+
+    if not candidate or not hmac.compare_digest(candidate, expected):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized: valid Bearer or X-Agent-Auth token required"},
+        )
+    return await call_next(request)
 
 
 class QueryRequest(BaseModel):
@@ -235,13 +261,15 @@ def _retrieve_kb_context(prompt: str, grounding_mode: str) -> tuple[str, List[st
     if grounding_mode == "raw_kb":
         return full_text, ["ALL_SECTIONS"]
 
+    import re
+
     sections = [s.strip() for s in full_text.split("\n## ") if s.strip()]
-    query_words = {w.strip(".,?!:;()").lower() for w in prompt.split() if len(w) > 2}
+    query_words = {w for w in re.findall(r"[a-z0-9]+", prompt.lower()) if len(w) > 2}
     scored = []
     for sec in sections:
         header = sec.splitlines()[0].lstrip("# ").strip()
-        sec_lower = sec.lower()
-        hits = sum(1 for w in query_words if w in sec_lower)
+        sec_words = set(re.findall(r"[a-z0-9]+", sec.lower()))
+        hits = len(query_words & sec_words)
         scored.append((hits, header, sec))
     scored.sort(key=lambda x: x[0], reverse=True)
     top = scored[:2]

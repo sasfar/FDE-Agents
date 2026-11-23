@@ -126,17 +126,18 @@ class AgentRuntimeAgent:
         """Call external Railway MCP server using Auth Provider tokens from Agent Engine."""
         import requests
         from google.api_core import exceptions as gcp_exceptions
-        from google.cloud.agentidentitycredentials_v1 import RetrieveCredentialsRequest
+        from google.cloud.agentidentitycredentials_v1 import (
+            AuthProviderCredentialsServiceClient,
+            RetrieveCredentialsRequest,
+        )
 
-        if not hasattr(self, "cred_client"):
-            self.set_up()
-
+        cred_client = AuthProviderCredentialsServiceClient()
         req_scopes = scopes if scopes is not None else ["read:user", "repo"]
         gh_provider = f"projects/{self.project}/locations/us-central1/authProviders/github-3lo"
         mcp_provider = f"projects/{self.project}/locations/us-central1/authProviders/gh-mcp-token"
 
         try:
-            gh_resp = self.cred_client.retrieve_credentials(
+            gh_resp = cred_client.retrieve_credentials(
                 request=RetrieveCredentialsRequest(
                     auth_provider=gh_provider,
                     user_id=user_id,
@@ -172,7 +173,7 @@ class AgentRuntimeAgent:
             }
 
         gh_token = gh_resp.success.token
-        mcp_resp = self.cred_client.retrieve_credentials(
+        mcp_resp = cred_client.retrieve_credentials(
             request=RetrieveCredentialsRequest(
                 auth_provider=mcp_provider,
                 user_id="system",
