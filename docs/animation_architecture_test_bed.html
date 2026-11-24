@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animation Architecture Test bed — End-to-End GCP Agent Identity, Egress &amp; Eval Simulator</title>
+<style>
+  :root {
+    --bg: #faf9f5; --panel: #ffffff; --text: #1f1e1d; --muted: #6b6a65; --line: #d8d6cc; --soft: #F1EFE8;
+    --gray: #888780; --purple: #534AB7; --amber: #BA7517; --coral: #D85A30; --teal: #1D9E75; --blue: #378ADD; --red: #E24B4A; --green: #3B6D11;
+    --zone-gcp: #EEEDFE; --zone-ext: #F1EFE8; --zone-vpc: #E8F5EF; --zone-ar: #EEF4FF; --hl: #fff6e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1e1d; --panel: #2a2927; --text: #ecebe6; --muted: #a3a29b; --line: #44433f; --soft: #383733;
+      --gray: #b4b2a9; --purple: #AFA9EC; --amber: #EF9F27; --coral: #F0997B; --teal: #5DCAA5; --blue: #85B7EB; --red: #F09595; --green: #97C459;
+      --zone-gcp: #2d2a4a; --zone-ext: #2f2e2b; --zone-vpc: #1f332b; --zone-ar: #1f2b3d; --hl: #3a3226;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 16px 22px 6px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 22px 4px; align-items: center; }
+  .presets span.t { font-size: 12px; color: var(--muted); margin-right: 4px; font-weight: 600; }
+  .presets button { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  .presets button:hover { border-color: var(--purple); }
+  .presets button.f1 { border-left: 3px solid var(--teal); }
+  .presets button.f2 { border-left: 3px solid var(--blue); }
+  .presets button.sec { border-left: 3px solid var(--amber); }
+  .presets button.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; padding: 10px 22px; border-bottom: 1px solid var(--line); }
+  .bar.sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); align-items: center; }
+  label.f { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); }
+  select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); min-width: 130px; }
+  select:disabled { opacity: .45; }
+  button { font: inherit; font-size: 13px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .speed { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .grow { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 14px; padding: 14px 22px 32px; }
+  @media (max-width: 1220px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .outcome { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 10px; min-height: 34px; flex-wrap: wrap; }
+  .pill { font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .pill.ok { color: var(--green); border-color: var(--green); }
+  .pill.warn { color: var(--amber); border-color: var(--amber); }
+  .pill.bad { color: var(--red); border-color: var(--red); }
+  .scenario { color: var(--muted); font-size: 13px; }
+  svg text { font-family: inherit; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  .step-num { font-size: 12px; color: var(--muted); }
+  .step-title { font-size: 16.5px; font-weight: 600; margin: 2px 0 6px; }
+  .step-detail { font-size: 13px; line-height: 1.55; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; background: var(--soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+  .carry { display: inline-block; margin-top: 8px; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+  .note { margin-top: 10px; font-size: 12px; line-height: 1.55; background: var(--hl); border-left: 3px solid var(--amber); padding: 7px 9px; }
+  h3 { font-size: 13px; font-weight: 600; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+  h3 button { font-size: 11.5px; padding: 3px 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td, th { padding: 4px 4px; border-top: 1px solid var(--line); vertical-align: top; text-align: left; }
+  th { font-weight: 600; color: var(--muted); border-top: none; }
+  td:first-child { white-space: nowrap; font-weight: 600; padding-right: 6px; }
+  .chip { display: inline-block; font-size: 11px; padding: 1px 6px; margin: 1px 2px 1px 0; border-radius: 999px; background: var(--soft); }
+  .chip.new { background: var(--amber); color: #fff; }
+  .chip.none { background: transparent; color: var(--muted); }
+  .yes { color: var(--teal); font-weight: 600; }
+  .no { color: var(--muted); }
+  .log { list-style: none; margin: 0; padding: 0; font-size: 12px; max-height: 260px; overflow: auto; }
+  .log li { display: flex; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+  .log li:hover { background: var(--soft); }
+  .log li.cur { background: var(--zone-gcp); font-weight: 500; }
+  .log li.done { color: var(--muted); }
+  .log li.deny { color: var(--red); }
+  .log .n { min-width: 20px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 22px; border-top: 3px solid; display: inline-block; }
+  .kbd { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Animation Architecture Test bed — End-to-End GCP Agent Identity, Egress &amp; Eval Simulator</h1>
+  <div class="sub">Project <code>geagent-sasfar-ooc</code> (<code>us-central1</code>). Unified interactive simulator combining <b>Flow 1</b> (Cloud Run <code>crm-agent-id</code> + <code>agent-lab-vpc</code> + SWP <code>10.10.0.40:80</code> + <code>swg-autogen-nat</code> + <code>PENDING</code> PSC), <b>Flow 2</b> (Vertex AI Agent Engine <code>test-agent-ar</code> + Managed <code>crm-egress-gw</code> + Memory Bank), <b>Auth Stages 1–3</b> (SPIFFE, API Key, 2LO, 3LO + PKCE, GitHub 3LO), <b>Model Armor</b>, <b>Agent Registry</b>, and <b>RAG / Cost Evals</b>.</div>
+</header>
+
+<div class="presets" id="presets"><span class="t">End-to-End Presets:</span></div>
+
+<div class="bar">
+  <label class="f">Calling agent
+    <select id="agent">
+      <option value="CR_ID">crm-agent-id (Cloud Run, SPIFFE)</option>
+      <option value="AR">test-agent-ar (Agent Engine, SPIFFE)</option>
+      <option value="CR_LEGACY">test-agent-cr (Cloud Run, legacy SA)</option>
+    </select></label>
+  <label class="f">Auth provider
+    <select id="provider">
+      <option value="gh3lo">github-3lo (Stage 3, real GitHub)</option>
+      <option value="gemini">gemini-api-key (LLM / RAG)</option>
+      <option value="crmkey">crm-api-key (Stage 1, API key)</option>
+      <option value="crm2lo">crm-2lo (Stage 2, 2LO)</option>
+      <option value="crm3lo">crm-3lo (Stage 3, 3LO + PKCE)</option>
+    </select></label>
+  <label class="f">Requested scope <select id="scope"></select></label>
+  <label class="f">user_id
+    <select id="user"><option value="asfar">asfar</option><option value="alice">alice</option><option value="charlie">charlie@sadasystems.com</option></select></label>
+  <label class="f">Caller AuthN
+    <select id="authn"><option value="valid">Valid X-Agent-Auth</option><option value="missing">Missing token (401)</option></select></label>
+  <label class="f">Prompt
+    <select id="prompt"><option value="benign">Benign / RAG</option><option value="inject">Prompt injection</option></select></label>
+  <label class="f">Egress / Call path
+    <select id="path">
+      <option value="swp">SWP 10.10.0.40:80 + NAT (Flow 1)</option>
+      <option value="egress">Managed crm-egress-gw (Flow 2 / Armor)</option>
+      <option value="unapproved">SWP blocked host (example.com 403)</option>
+      <option value="sec08">SWP default_denied (SEC-08)</option>
+      <option value="psc">PSC 10.10.0.10 (PENDING timeout)</option>
+      <option value="stage">Direct (/api/test-stage)</option>
+    </select></label>
+  <label class="f">Tool response
+    <select id="tool"><option value="clean">Clean</option><option value="poison">Poisoned (hidden instructions)</option></select></label>
+</div>
+
+<div class="bar sticky">
+  <button class="primary" onclick="runCustom()">Run custom</button>
+  <button id="play" onclick="togglePlay()">Pause</button>
+  <button onclick="prev()">Back</button>
+  <button onclick="next()">Next</button>
+  <label class="speed">Speed <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1"><span id="speedv">1x</span></label>
+  <span class="grow"></span>
+  <span class="scenario" id="progress">Ready</span>
+</div>
+
+<main>
+  <section>
+    <div class="card">
+      <div class="outcome"><span class="pill" id="outcome">Idle</span><span class="scenario" id="scenarioText">Choose a preset or configure the inputs and press Run.</span></div>
+      <svg id="map" viewBox="0 0 1260 730" width="100%" role="img" aria-label="Animation Architecture Test bed topology"></svg>
+      <div class="legend">
+        <span><i class="sw" style="border-color:var(--gray)"></i>Request / Ingress</span>
+        <span><i class="sw" style="border-color:var(--purple)"></i>SPIFFE Identity / Memory</span>
+        <span><i class="sw" style="border-color:var(--amber)"></i>API Key / AuthN / Client ID</span>
+        <span><i class="sw" style="border-color:var(--coral)"></i>Client Secret</span>
+        <span><i class="sw" style="border-color:var(--teal)"></i>Access Token / Allowed Egress</span>
+        <span><i class="sw" style="border-color:var(--blue)"></i>Data / Grounded Response</span>
+        <span><i class="sw" style="border-color:var(--gray);border-top-style:dashed"></i>Browser 3LO Consent</span>
+        <span><i class="sw" style="border-color:var(--red)"></i>Denied / Blocked (401 / 403)</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card" aria-live="polite">
+      <div class="step-num" id="stepNum">Waiting</div>
+      <div class="step-title" id="stepTitle">Ready</div>
+      <div class="step-detail" id="stepDetail">Each step shows what moves, which credential it carries, and which security or networking control acts on it.</div>
+      <div id="stepCarry"></div>
+      <div id="stepNote"></div>
+    </div>
+
+    <div class="card">
+      <h3>Broker Vault (Per-User 3LO Tokens) <button onclick="clearVault()">Clear vault</button></h3>
+      <table id="vault"></table>
+    </div>
+
+    <div class="card">
+      <h3>Who Has Seen Each Credential in This Run</h3>
+      <table id="seen"></table>
+    </div>
+
+    <div class="card">
+      <h3>Flow 1 vs. Flow 2 &amp; Eval Cost Snapshot</h3>
+      <table>
+        <thead><tr><th>Dimension</th><th>Flow 1 (Cloud Run)</th><th>Flow 2 (Agent Engine)</th></tr></thead>
+        <tbody>
+          <tr><td>Identity</td><td>SPIFFE <code>AGENT_IDENTITY</code></td><td>SPIFFE <code>RuntimeIdentity</code></td></tr>
+          <tr><td>Ingress</td><td>ALB <code>35.209.113.245</code> + Armor + <code>401</code></td><td>Vertex AI IAM (<code>:query</code>)</td></tr>
+          <tr><td>Egress</td><td>SWP <code>10.10.0.40:80</code> + <code>swg-autogen-nat</code></td><td><code>crm-egress-gw</code> + Model Armor</td></tr>
+          <tr><td>Grounding</td><td>Regex RAG (<code>5.000</code>, <code>$0.122/1k</code> lite)</td><td>Memory Bank (<code>477.9ms</code>, <code>0</code> leak)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Steps in This Run</h3>
+      <ul class="log" id="log"></ul>
+      <div class="kbd">Click a step to jump. Keyboard: Space pauses/plays, Left/Right arrows step.</div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const NODES = {
+  MAC:       { x: 108,  y: 165, name: 'Client / Eval Harness', sub: 'local-mac-agent / evals' },
+  BROWSER:   { x: 108,  y: 555, name: 'User Browser', sub: '3LO OAuth consent' },
+
+  // Flow 1 (Top VPC Band)
+  ALB:       { x: 318,  y: 165, name: 'External ALB + Armor', sub: '35.209.113.245 (SEC-05)' },
+  CR_ID:     { x: 540,  y: 130, name: 'Cloud Run: crm-agent-id', sub: 'SPIFFE + 401 AuthN + RAG' },
+  SWP:       { x: 775,  y: 105, name: 'SWP: crm-swp-egress', sub: '10.10.0.40:80 + swp-gw' },
+  NAT:       { x: 775,  y: 185, name: 'Cloud NAT: swg-autogen', sub: '10.10.x -> Public Egress IP' },
+  PSC:       { x: 645,  y: 252, name: 'PSC: crm-egress-gw-psc', sub: '10.10.0.10 (PENDING)' },
+
+  // Shared Governance & Legacy/Mock
+  BROKER:    { x: 775,  y: 350, name: 'GCP Auth Broker', sub: 'agentidentitycredentials' },
+  GEMINI:    { x: 540,  y: 325, name: 'Gemini API', sub: '3.5-lite | 3.8-flash | 3.1-pro' },
+  REGISTRY:  { x: 775,  y: 440, name: 'Cloud Agent Registry', sub: 'RuntimeIdentity + railway-gh-mcp' },
+  CR_LEGACY: { x: 318,  y: 350, name: 'test-agent-cr', sub: 'Cloud Run (Legacy SA)' },
+  CRM_MOCK:  { x: 540,  y: 655, name: 'crm-tool-mock', sub: 'Mock OAuth + CRM API' },
+  EVALS:     { x: 775,  y: 655, name: 'Eval & Hillclimb', sub: 'SEC-01..11 + GTA6 Harness' },
+
+  // Flow 2 (Bottom Agent Runtime Band)
+  AR:        { x: 540,  y: 530, name: 'Agent Engine: test-agent-ar', sub: 'ReasoningEngine 889432...456' },
+  MEM:       { x: 318,  y: 530, name: 'Vertex Memory Bank', sub: 'Scoped user_id (477.9ms)' },
+  EGRESS:    { x: 775,  y: 540, name: 'Managed Egress GW', sub: 'crm-egress-gw + Model Armor' },
+
+  // Outside GCP: Internet
+  RAILWAY:   { x: 1110, y: 155, name: 'Railway MCP Server', sub: 'gh-mcp-server (Bun)' },
+  GH_API:    { x: 1110, y: 315, name: 'GitHub REST API', sub: 'api.github.com' },
+  GH_OAUTH:  { x: 1110, y: 470, name: 'GitHub OAuth (3LO)', sub: 'github.com/login/oauth' },
+  BAD_HOST:  { x: 1110, y: 625, name: 'Unapproved Host', sub: 'example.com/mcp (403)' },
+};
+
+const NW = 170, NH = 54;
+const WAYPOINTS = {
+  'MAC|AR':          [[108, 435], [430, 435], [430, 530]],
+  'AR|MAC':          [[430, 530], [430, 435], [108, 435]],
+  'MAC|CR_LEGACY':   [[210, 350]],
+  'CR_LEGACY|MAC':   [[210, 350]],
+  'NAT|RAILWAY':     [[935, 185], [935, 155]],
+  'RAILWAY|NAT':     [[935, 155], [935, 185]],
+  'SWP|BAD_HOST':    [[955, 105], [955, 625]],
+  'EGRESS|RAILWAY':  [[920, 540], [920, 155]],
+  'RAILWAY|EGRESS':  [[920, 155], [920, 540]],
+  'EGRESS|CRM_MOCK': [[660, 540], [660, 655]],
+  'CRM_MOCK|EGRESS': [[660, 655], [660, 540]],
+  'CR_ID|BROKER':    [[650, 130], [650, 350]],
+  'BROKER|CR_ID':    [[650, 350], [650, 130]],
+  'CR_ID|CRM_MOCK':  [[432, 130], [432, 655]],
+  'CRM_MOCK|CR_ID':  [[432, 655], [432, 130]],
+  'BROKER|CRM_MOCK': [[672, 350], [672, 655]],
+  'CRM_MOCK|BROKER': [[672, 655], [672, 350]],
+  'BROWSER|GH_OAUTH':[[108, 706], [1110, 706]],
+  'BROWSER|BROKER':  [[108, 706], [945, 706], [945, 350]],
+  'AR|BROKER':       [[655, 530], [655, 350]],
+  'BROKER|AR':       [[655, 350], [655, 530]],
+};
+
+const STATIC_EDGES = [
+  ['MAC','ALB'],['ALB','CR_ID'],['CR_ID','SWP'],['SWP','NAT'],['NAT','RAILWAY'],['CR_ID','PSC'],
+  ['SWP','BAD_HOST'],['SWP','REGISTRY'],['CR_ID','BROKER'],['CR_ID','GEMINI'],['CR_ID','CRM_MOCK'],
+  ['MAC','CR_LEGACY'],['CR_LEGACY','BROKER'],['MAC','AR'],['AR','MEM'],['AR','BROKER'],['AR','EGRESS'],
+  ['AR','REGISTRY'],['EGRESS','RAILWAY'],['EGRESS','CRM_MOCK'],['BROKER','GEMINI'],['BROKER','CRM_MOCK'],
+  ['BROKER','GH_OAUTH'],['RAILWAY','GH_API'],['BROWSER','GH_OAUTH'],['EVALS','AR']
+];
+
+const COLORS = {
+  req: 'var(--gray)', id: 'var(--purple)', key: 'var(--amber)',
+  secret: 'var(--coral)', token: 'var(--teal)', data: 'var(--blue)',
+  human: 'var(--gray)', deny: 'var(--red)'
+};
+
+const CREDS = [
+  ['identity', 'Workload identity'], ['authn', 'Caller AuthN token'], ['gemini_key', 'Gemini API key'],
+  ['crm_key', 'CRM API key'], ['client_id', 'Client ID'], ['client_secret', 'Client secret'],
+  ['code', 'Auth code'], ['m2m', 'M2M token (2LO)'], ['user_token', 'User token (3LO)'],
+];
+
+const SCOPES = {
+  gemini: [], crmkey: [],
+  crm2lo: [['metrics:read', 'metrics:read (allowed)'], ['metrics:delete', 'metrics:delete (blocked)']],
+  crm3lo: [['deals:read', 'deals:read (allowed)'], ['deals:admin', 'deals:admin (blocked)']],
+  gh3lo:  [['read:user,repo', 'read:user,repo (allowed)'], ['delete_repo', 'delete_repo (blocked)']],
+};
+const BLOCKED = { 'metrics:delete': 1, 'deals:admin': 1, 'delete_repo': 1 };
+const PROVIDER_NAME = { gemini: 'gemini-api-key', crmkey: 'crm-api-key', crm2lo: 'crm-2lo', crm3lo: 'crm-3lo', gh3lo: 'github-3lo' };
+
+let vault = { crm3lo: { asfar: true, alice: false, charlie: false }, gh3lo: { asfar: true, alice: false, charlie: false } };
+let steps = [], outcome = null, cur = -1, playing = false, animTok = 0, dwell = null, vaultBefore = null, activePresetIdx = 0;
+
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== '') e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function build(cfg) {
+  const S = [];
+  const add = o => S.push(o);
+  const A = cfg.agent, P = cfg.provider, u = cfg.user, pn = PROVIDER_NAME[P];
+  const agentName = NODES[A].name;
+  const viaALB = A === 'CR_ID';
+  const end = (code, cls, text) => ({ code, cls, text });
+
+  // 1. Entry & Ingress AuthN + Model Armor
+  if (A === 'CR_ID') {
+    add({ f: 'MAC', t: 'ALB', kind: cfg.authn === 'missing' ? 'req' : 'key', cred: cfg.authn === 'missing' ? undefined : 'authn',
+      label: cfg.prompt === 'inject' ? 'malicious prompt' : (cfg.authn === 'missing' ? 'POST /query (no token)' : 'POST /query + X-Agent-Auth'),
+      title: 'Client calls External ALB (35.209.113.245)',
+      detail: `Caller sends request to <code>http://35.209.113.245</code>${cfg.authn === 'missing' ? ' <b>without</b> <code>X-Agent-Auth</code> or <code>Bearer</code>' : ' with <code>X-Agent-Auth: AGENT_CALLER_TOKEN</code>'}. Direct <code>*.run.app</code> URLs return 404 (<code>internal-and-cloud-load-balancing</code>).` });
+    if (cfg.prompt === 'inject') {
+      add({ f: 'ALB', t: 'ALB', kind: 'deny', label: '403 MODEL ARMOR (SEC-05)',
+        title: 'Ingress Model Armor blocks prompt injection (SEC-05)',
+        detail: '<code>crm-alb-ma-extension</code> (<code>crm-guardrail-tpl</code>, <code>failOpen: false</code>) flags prompt injection and returns <code>403</code>. <code>crm-agent-id</code> never sees it.' });
+      return { S, out: end('BLOCKED_BY_MODEL_ARMOR', 'bad', 'Ingress Model Armor stopped the prompt at the ALB (SEC-05).') };
+    }
+    add({ f: 'ALB', t: 'CR_ID', kind: cfg.authn === 'missing' ? 'req' : 'key', cred: cfg.authn === 'missing' ? undefined : 'authn',
+      label: cfg.authn === 'missing' ? 'Forward (no AuthN)' : 'Armor PASS + X-Agent-Auth',
+      title: 'Edge Model Armor allows prompt and forwards to Cloud Run',
+      detail: 'Request enters <code>agent-lab-vpc</code> to <code>crm-agent-id</code> (<code>rev 00012-drl</code>).' });
+    if (cfg.authn === 'missing') {
+      add({ f: 'CR_ID', t: 'CR_ID', kind: 'deny', label: '401 UNAUTHORIZED (SEC-11)',
+        title: 'enforce_caller_authn rejects unauthenticated call (SEC-11)',
+        detail: 'FastAPI middleware checks <code>Authorization: Bearer</code>, <code>X-Agent-Auth</code>, and <code>X-Goog-IAP-JWT-Assertion</code>. None is present, so it returns <code>401 Unauthorized</code> before touching Gemini or the Broker.' });
+      return { S, out: end('401_UNAUTHORIZED', 'bad', 'SEC-11 passed: unauthenticated ALB request rejected with HTTP 401.') };
+    }
+  } else if (A === 'CR_LEGACY') {
+    add({ f: 'MAC', t: 'CR_LEGACY', kind: 'req', label: 'direct run.app call',
+      title: 'Direct call to legacy test-agent-cr',
+      detail: '<code>test-agent-cr</code> has <code>ingress: all</code>, bypassing ALB and Edge Model Armor.' });
+  } else {
+    add({ f: 'MAC', t: 'AR', kind: 'req', label: 'reasoningEngines:query',
+      title: 'Caller invokes Vertex AI Agent Engine (test-agent-ar)',
+      detail: `Calls <code>reasoningEngines/8894320367376531456:query</code> via Vertex AI IAM${(P === 'crm3lo' || P === 'gh3lo') ? ` with <code>user_id="${u}"</code>` : ''}.` });
+    if (P === 'gh3lo') {
+      add({ f: 'AR', t: 'MEM', kind: 'id', label: `retrieve(user_id="${u}")`, cred: 'identity',
+        title: 'Flow 2: Agent Engine queries Vertex AI Memory Bank',
+        detail: `<code>test-agent-ar</code> retrieves scoped memories for <code>${u}</code> (<code>477.9 ms</code>, <code>0</code> cross-user leakage in <code>eval_memory_bank.py</code>).` });
+      add({ f: 'MEM', t: 'AR', kind: 'data', label: 'Scoped user memories',
+        title: 'Memory Bank returns user-scoped context', detail: `Only memories belonging to <code>${u}</code> are returned.` });
+    }
+  }
+
+  // 2a. Egress-only /api/test-egress path for SEC-06
+  if (A === 'CR_ID' && P === 'crmkey' && cfg.path === 'egress') {
+    add({ f: 'CR_ID', t: 'EGRESS', kind: 'req', label: 'Proxy via crm-egress-gw',
+      title: '/api/test-egress routes through Managed Egress GW',
+      detail: 'Exercises <code>crm-egress-gw</code> + <code>crm-egress-ma-extension</code>.' });
+    add({ f: 'EGRESS', t: 'CRM_MOCK', kind: 'req', label: 'GET /v1/public-catalog', title: 'Egress gateway calls crm-tool-mock', detail: '' });
+    add({ f: 'CRM_MOCK', t: 'EGRESS', kind: 'data', label: cfg.tool === 'poison' ? 'Poisoned tool output' : 'Clean catalog',
+      title: 'crm-tool-mock returns response', detail: cfg.tool === 'poison' ? 'Contains hidden prompt injection text.' : 'Normal catalog JSON.' });
+    if (cfg.tool === 'poison') {
+      add({ f: 'EGRESS', t: 'EGRESS', kind: 'deny', label: '403 ARMOR (SEC-06)',
+        title: 'Egress Model Armor blocks poisoned tool output (SEC-06)',
+        detail: '<code>crm-egress-guardrail-tpl</code> detects indirect prompt injection and drops the response before it reaches the agent.' });
+      return { S, out: end('BLOCKED_BY_EGRESS_MODEL_ARMOR', 'bad', 'Egress Model Armor stopped poisoned tool output (SEC-06).') };
+    }
+    add({ f: 'EGRESS', t: 'CR_ID', kind: 'data', label: 'Armor PASS', title: 'Clean result delivered to crm-agent-id', detail: '' });
+    add({ f: 'CR_ID', t: 'ALB', kind: 'data', label: '200 OK', title: 'Agent returns response', detail: '' });
+    add({ f: 'ALB', t: 'MAC', kind: 'data', label: 'Final answer', title: 'Caller receives response', detail: '' });
+    return { S, out: end('ALLOWED', 'ok', 'Egress Model Armor screened and passed clean tool output.') };
+  }
+
+  // 2. Ask Broker
+  const legacy = A === 'CR_LEGACY';
+  add({ f: A, t: 'BROKER', kind: legacy ? 'req' : 'id', cred: 'identity',
+    label: legacy ? 'Compute SA token' : 'SPIFFE identity',
+    title: `${agentName} authenticates to GCP Auth Broker`,
+    detail: legacy
+      ? 'Presents default Compute Engine SA (<code>172882039333-compute@developer.gserviceaccount.com</code>).'
+      : `Presents cryptographic SPIFFE identity (${A === 'CR_ID' ? '<code>AGENT_IDENTITY</code>' : '<code>RuntimeIdentity</code>, SEC-07'}) for <code>${pn}</code>.` });
+
+  if (legacy) {
+    add({ f: 'BROKER', t: 'BROKER', kind: 'deny', label: 'PERMISSION_DENIED (SEC-01)',
+      title: 'Broker rejects legacy Compute SA (SEC-01)',
+      detail: 'Auth Providers release credentials only to bound SPIFFE agent identities. Negative control passed.' });
+    return { S, out: end('DENIED_BY_GCP_BROKER', 'bad', 'SEC-01 passed: legacy Compute SA denied by Auth Broker.') };
+  }
+  if (A === 'AR' && P !== 'gemini' && P !== 'crm2lo' && P !== 'gh3lo') {
+    add({ f: 'BROKER', t: 'BROKER', kind: 'deny', label: 'Not bound',
+      title: `test-agent-ar is not bound to ${pn}`,
+      detail: `<code>test-agent-ar</code> is bound to <code>gemini-api-key</code>, <code>crm-2lo</code>, and <code>github-3lo</code>.` });
+    return { S, out: end('DENIED_BY_GCP_BROKER', 'bad', `test-agent-ar is not bound to ${pn}.`) };
+  }
+  if (cfg.scope && BLOCKED[cfg.scope]) {
+    add({ f: 'BROKER', t: 'BROKER', kind: 'deny', label: `BLOCKED: ${cfg.scope}`,
+      title: `Broker blocks forbidden scope ${cfg.scope}`,
+      detail: `<code>${cfg.scope}</code> is in <code>blockedScopes</code>. Refused before contacting ${P === 'gh3lo' ? 'GitHub' : '<code>crm-tool-mock</code>'}.` });
+    return { S, out: end('DENIED_BY_GCP_BROKER', 'bad', `Broker blocked forbidden scope ${cfg.scope}.`) };
+  }
+
+  function back(label) {
+    if (viaALB) {
+      add({ f: 'CR_ID', t: 'ALB', kind: 'data', label, title: 'Cloud Run sends response to ALB', detail: '' });
+      add({ f: 'ALB', t: 'MAC', kind: 'data', label, title: 'Caller receives response', detail: '<code>crm-alb-ma-extension</code> also configures <code>response_template_id</code>.' });
+    } else {
+      add({ f: A, t: 'MAC', kind: 'data', label, title: 'Caller receives response', detail: 'Returned directly via Vertex AI API.' });
+    }
+  }
+
+  function routeExternal(target, reqLabel, cred, kind) {
+    if (target === 'CRM_MOCK') {
+      add({ f: A, t: 'CRM_MOCK', kind, cred, label: reqLabel,
+        title: `${agentName} calls crm-tool-mock`, detail: 'Sends broker-issued credential to mock CRM API.' });
+      add({ f: 'CRM_MOCK', t: A, kind: 'data', label: cfg.tool === 'poison' ? 'Poisoned result' : 'CRM JSON',
+        title: 'crm-tool-mock returns data', detail: '' });
+      return true;
+    }
+    if (A === 'CR_ID' && cfg.path === 'psc') {
+      add({ f: 'CR_ID', t: 'PSC', kind: 'req', label: 'Connect 10.10.0.10:443',
+        title: 'Cloud Run tries PSC forwarding rule (10.10.0.10)',
+        detail: '<code>crm-egress-gw-psc</code> targets tenant attachment <code>unitkind1-swp-mtls-psc-sa</code>.' });
+      add({ f: 'PSC', t: 'PSC', kind: 'deny', label: 'PENDING TIMEOUT (15s)',
+        title: 'PSC is PENDING — TCP timeout',
+        detail: '<code>pscConnectionStatus: PENDING</code> drops packets. That is why Flow 1 uses SWP (<code>10.10.0.40:80</code>) + Cloud NAT instead.' });
+      return 'psc_timeout';
+    }
+    if (A === 'CR_ID' && cfg.path === 'unapproved') {
+      add({ f: 'CR_ID', t: 'SWP', kind: 'req', label: 'CONNECT example.com',
+        title: 'Cloud Run sends unapproved host to SWP (10.10.0.40:80)',
+        detail: 'Attempts tunnel to <code>https://example.com/mcp</code>.' });
+      add({ f: 'SWP', t: 'SWP', kind: 'deny', label: '403 FORBIDDEN (SEC-09)',
+        title: 'SWP policy blocks example.com (SEC-09)',
+        detail: '<code>crm-swp-policy</code> rejects unapproved domains with <code>403 Forbidden</code> before Cloud NAT.' });
+      return 'swp_blocked';
+    }
+    if (A === 'CR_ID' && cfg.path === 'sec08') {
+      add({ f: 'CR_ID', t: 'SWP', kind: 'req', label: 'CONNECT railway-gh-mcp',
+        title: 'Cloud Run routes via crm-egress-swp-gw',
+        detail: '<code>selfManaged</code> AgentGateway backed by <code>crm-swp-egress</code>.' });
+      add({ f: 'SWP', t: 'REGISTRY', kind: 'id', label: 'Check Binding',
+        title: 'Gateway checks Agent Registry for binding',
+        detail: '<code>railway-gh-mcp</code> is registered, but creating the binding failed with <code>agentregistry.bindings.create</code> <code>PERMISSION_DENIED</code>.' });
+      add({ f: 'SWP', t: 'SWP', kind: 'deny', label: '403 default_denied (SEC-08)',
+        title: 'SWP enforces default_denied (SEC-08)',
+        detail: 'Blocked until <code>agentregistry.bindings.create</code> IAM is granted.' });
+      return 'sec08_denied';
+    }
+    if (A === 'CR_ID') {
+      add({ f: 'CR_ID', t: 'SWP', kind, cred, label: reqLabel + ' via 10.10.0.40:80',
+        title: 'Flow 1: Cloud Run routes egress through SWP (crm-swp-egress)',
+        detail: 'Direct VPC Egress sends HTTPS to <code>10.10.0.40:80</code> (<code>crm-swp-egress</code> + <code>crm-egress-swp-gw</code>).' });
+      add({ f: 'SWP', t: 'NAT', kind, cred, label: 'swg-autogen-nat',
+        title: 'SWP uses Cloud NAT to reach public internet',
+        detail: '<code>swg-autogen-nat</code> translates private <code>10.10.x.x</code> IPs to a public egress IP. (Power off with <code>./agent_gateway/swp_power.sh down</code> when idle.)' });
+      add({ f: 'NAT', t: 'RAILWAY', kind, cred, label: reqLabel,
+        title: 'Egress reaches Railway gh-mcp-server', detail: 'Allowed by <code>crm-swp-policy</code>.' });
+      add({ f: 'RAILWAY', t: 'GH_API', kind: 'token', cred: 'user_token', label: 'GET /user',
+        title: 'Railway calls live GitHub REST API', detail: 'Uses <code>X-GitHub-Token</code> (<code>gho_...</code>).' });
+      add({ f: 'RAILWAY', t: 'NAT', kind: 'data', label: 'Live GitHub JSON', title: 'Response returns via Cloud NAT', detail: '' });
+      add({ f: 'SWP', t: 'CR_ID', kind: 'data', label: 'via_egress_gw: true', title: 'SWP returns response to crm-agent-id', detail: '' });
+      return true;
+    }
+    // Flow 2: AR -> Managed Egress GW
+    add({ f: 'AR', t: 'EGRESS', kind, cred, label: reqLabel,
+      title: 'Flow 2: Agent Engine routes via Google-managed crm-egress-gw',
+      detail: '<code>AGENT_TO_ANYWHERE</code> gateway—no customer VPC SWP or Cloud NAT required.' });
+    add({ f: 'EGRESS', t: 'RAILWAY', kind, cred, label: reqLabel,
+      title: 'Managed Egress GW forwards to Railway MCP', detail: '' });
+    add({ f: 'RAILWAY', t: 'GH_API', kind: 'token', cred: 'user_token', label: 'GET /user/repos',
+      title: 'Railway calls live GitHub REST API', detail: 'Executes <code>gh_whoami</code> / <code>gh_list_my_repos</code>.' });
+    add({ f: 'RAILWAY', t: 'EGRESS', kind: 'data', label: cfg.tool === 'poison' ? 'Poisoned MCP output' : 'Live GitHub JSON',
+      title: 'Railway returns MCP response to Managed Egress GW', detail: '' });
+    if (cfg.tool === 'poison') {
+      add({ f: 'EGRESS', t: 'EGRESS', kind: 'deny', label: '403 ARMOR (SEC-06)',
+        title: 'Egress Model Armor blocks poisoned MCP output (SEC-06)',
+        detail: '<code>crm-egress-guardrail-tpl</code> detects indirect prompt injection before it reaches <code>test-agent-ar</code>.' });
+      return 'poisoned';
+    }
+    add({ f: 'EGRESS', t: 'AR', kind: 'data', label: 'Armor PASS (Clean)',
+      title: 'Managed Egress GW delivers clean result to test-agent-ar', detail: '' });
+    return true;
+  }
+
+  // 3. Provider Branches
+  if (P === 'gemini') {
+    add({ f: 'BROKER', t: A, kind: 'key', cred: 'gemini_key', label: 'agent-vertex-gemini-key',
+      title: 'Broker releases vaulted Gemini API key', detail: 'Zero secrets stored in agent env/code.' });
+    add({ f: A, t: 'GEMINI', kind: 'key', cred: 'gemini_key',
+      label: A === 'CR_ID' ? 'RAG (768.1 tok) + generateContent' : 'generateContent',
+      title: `${agentName} calls Gemini API`,
+      detail: A === 'CR_ID'
+        ? 'Regex RAG (<code>re.findall(r"[a-z0-9]+", ...)</code>) achieves <b>5.000 Groundedness</b> with <b>45% fewer tokens</b> than <code>raw_kb</code> (<code>flash-lite</code>: <code>$0.122/1k</code>, <code>808.5 ms</code>; <code>3.8-flash</code>: <code>$1.415/1k</code>).'
+        : 'Calls Gemini <code>3.5-lite</code> / <code>3.8-flash</code> / <code>3.1-pro-preview</code>.' });
+    add({ f: 'GEMINI', t: A, kind: 'data', label: '5.000 Grounded Answer', title: 'Gemini returns response + usage telemetry', detail: '' });
+    back('Answer + usage');
+    return { S, out: end('ALLOWED', 'ok', 'Gemini answered using broker-released key (5.000 Groundedness in RAG).') };
+  }
+
+  if (P === 'crmkey') {
+    add({ f: 'BROKER', t: A, kind: 'key', cred: 'crm_key', label: 'CRM API key', title: 'Broker releases Stage 1 CRM API key', detail: '' });
+    routeExternal('CRM_MOCK', 'GET /v1/public-catalog', 'crm_key', 'key');
+    back('200 catalog');
+    return { S, out: end('ALLOWED', 'ok', 'Stage 1: static CRM API key released and verified.') };
+  }
+
+  if (P === 'crm2lo') {
+    add({ f: 'BROKER', t: 'CRM_MOCK', kind: 'secret', cred: 'client_secret', label: 'client_credentials + secret',
+      title: 'Broker exchanges client_secret for 2LO M2M token', detail: '<code>client_secret</code> never leaves the Broker.' });
+    add({ f: 'CRM_MOCK', t: 'BROKER', kind: 'token', cred: 'm2m', label: 'M2M token (metrics:read)', title: 'Mock OAuth issues M2M token', detail: '' });
+    add({ f: 'BROKER', t: A, kind: 'token', cred: 'm2m', label: 'M2M token', title: 'Broker hands M2M token to agent', detail: '' });
+    routeExternal('CRM_MOCK', 'GET /v1/org-metrics', 'm2m', 'token');
+    back('ALLOWED');
+    return { S, out: end('ALLOWED', 'ok', 'Stage 2 2LO: metrics:read allowed; client_secret stayed in Broker.') };
+  }
+
+  // 3LO (crm3lo or gh3lo)
+  const gh = P === 'gh3lo', IDP = gh ? 'GH_OAUTH' : 'CRM_MOCK';
+  if (!vault[P][u]) {
+    add({ f: 'BROKER', t: A, kind: 'key', cred: 'client_id', label: 'CONSENT_REQUIRED',
+      title: `No ${pn} token vaulted for ${u}`,
+      detail: `Vault is keyed strictly by <code>user_id</code>. Even if <code>asfar</code> has a token, <code>${u}</code> receives <code>CONSENT_REQUIRED</code> (<code>SEC-04</code>).` });
+    if (u === 'charlie') {
+      back('CONSENT_REQUIRED');
+      return { S, out: end('CONSENT_REQUIRED', 'warn', `SEC-04 passed: ${u} isolated and returned CONSENT_REQUIRED.`) };
+    }
+    add({ f: 'MAC', t: 'BROWSER', kind: 'human', label: 'Open consent URL', title: 'User opens OAuth consent link in browser', detail: '' });
+    add({ f: 'BROWSER', t: IDP, kind: 'human', cred: 'client_id', label: 'User approves scope', title: `User ${u} grants consent at ${gh ? 'GitHub' : 'crm-tool-mock'}`, detail: '' });
+    add({ f: IDP, t: 'BROWSER', kind: 'human', cred: 'code', label: 'Redirect ?code=...', title: 'IdP redirects to Google oauthcallback', detail: '' });
+    add({ f: 'BROWSER', t: 'BROKER', kind: 'human', cred: 'code', label: 'Deliver ?code', title: 'Google oauthcallback receives code', detail: '' });
+    add({ f: 'BROKER', t: IDP, kind: 'secret', cred: 'client_secret', label: 'code + client_secret', title: 'Broker exchanges code for token', detail: '<code>client_secret</code> stays inside the Broker.' });
+    add({ f: IDP, t: 'BROKER', kind: 'token', cred: 'user_token', label: gh ? 'gho_... token' : '3LO token', title: 'Token vaulted for user_id', detail: `Stored in Broker vault for <code>${u}</code>.`, vaultSet: [P, u, true] });
+    add({ f: 'MAC', t: A, kind: 'req', label: 'Retry request', title: `Caller retries as ${u}`, detail: '' });
+  }
+  add({ f: 'BROKER', t: A, kind: 'token', cred: 'user_token', label: `Vaulted ${gh ? 'gho_...' : '3LO'} (${u})`,
+    title: `Broker releases ${u}'s scoped 3LO token`, detail: 'Token is scoped to allowed scopes only.' });
+  const res = routeExternal(gh ? 'RAILWAY' : 'CRM_MOCK', gh ? 'MCP gh_whoami' : 'GET /v1/my-deals', 'user_token', 'token');
+  if (res === 'psc_timeout') return { S, out: end('CONNECT_TIMEOUT', 'bad', 'PSC 10.10.0.10 is PENDING; Flow 1 uses SWP 10.10.0.40:80.') };
+  if (res === 'swp_blocked') return { S, out: end('403_FORBIDDEN', 'bad', 'SEC-09 passed: SWP blocked unapproved host example.com.') };
+  if (res === 'sec08_denied') return { S, out: end('403_DEFAULT_DENIED', 'warn', 'SEC-08: crm-egress-swp-gw enforces default_denied until agentregistry.bindings.create IAM is granted.') };
+  if (res === 'poisoned') return { S, out: end('BLOCKED_BY_EGRESS_ARMOR', 'bad', 'SEC-06 passed: Egress Model Armor blocked poisoned MCP output.') };
+  back('ALLOWED');
+  return { S, out: end('ALLOWED', 'ok', `${agentName} completed ${pn} end-to-end.`) };
+}
+
+function route(a, b) {
+  const pts = [NODES[a], NODES[b]].map(n => [n.x, n.y]);
+  const w = WAYPOINTS[`${a}|${b}`];
+  if (w) pts.splice(1, 0, ...w);
+  const off = 4, segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1, nx = -(y2 - y1) / L * off, ny = (x2 - x1) / L * off;
+    segs.push([x1 + nx, y1 + ny, x2 + nx, y2 + ny, L]);
+  }
+  return segs;
+}
+function pointAt(segs, frac) {
+  const total = segs.reduce((s, g) => s + g[4], 0);
+  let d = total * frac;
+  for (const g of segs) {
+    if (d <= g[4]) { const k = d / g[4]; return [g[0] + (g[2] - g[0]) * k, g[1] + (g[3] - g[1]) * k]; }
+    d -= g[4];
+  }
+  const g = segs[segs.length - 1]; return [g[2], g[3]];
+}
+function pathD(segs, frac) {
+  const total = segs.reduce((s, g) => s + g[4], 0);
+  let d = total * frac, out = `M${segs[0][0]} ${segs[0][1]}`;
+  for (const g of segs) {
+    if (d >= g[4]) { out += ` L${g[2]} ${g[3]}`; d -= g[4]; }
+    else { const k = d / g[4]; out += ` L${g[0] + (g[2] - g[0]) * k} ${g[1] + (g[3] - g[1]) * k}`; break; }
+  }
+  return out;
+}
+
+const svg = $('map');
+let layerEdges, layerNodes, layerFx;
+function drawBase() {
+  svg.innerHTML = '';
+  const z = el('g', {}, svg);
+  el('rect', { x: 8, y: 40, width: 200, height: 675, rx: 12, fill: 'var(--zone-ext)', stroke: 'var(--line)' }, z);
+  el('text', { x: 20, y: 62, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--muted)' }, z, 'Outside GCP: Clients');
+
+  el('rect', { x: 222, y: 10, width: 750, height: 705, rx: 12, fill: 'var(--zone-gcp)', stroke: 'var(--purple)', 'stroke-dasharray': '5 4', 'stroke-width': 0.9 }, z);
+  el('text', { x: 236, y: 31, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--purple)' }, z, 'Google Cloud: geagent-sasfar-ooc (us-central1)');
+
+  el('rect', { x: 438, y: 46, width: 446, height: 242, rx: 10, fill: 'var(--zone-vpc)', stroke: 'var(--teal)', 'stroke-dasharray': '6 4', 'stroke-width': 1.2 }, z);
+  el('text', { x: 450, y: 65, 'font-size': 11, 'font-weight': 600, fill: 'var(--teal)' }, z, 'FLOW 1 — agent-lab-vpc (10.10.0.0/24 + proxy-subnet 10.10.1.0/24)');
+
+  el('rect', { x: 234, y: 472, width: 650, height: 122, rx: 10, fill: 'var(--zone-ar)', stroke: 'var(--blue)', 'stroke-dasharray': '6 4', 'stroke-width': 1.2 }, z);
+  el('text', { x: 246, y: 491, 'font-size': 11, 'font-weight': 600, fill: 'var(--blue)' }, z, 'FLOW 2 — Managed Vertex AI Agent Runtime (No VPC SWP / NAT needed)');
+
+  el('rect', { x: 988, y: 40, width: 264, height: 675, rx: 12, fill: 'var(--zone-ext)', stroke: 'var(--line)' }, z);
+  el('text', { x: 1002, y: 62, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--muted)' }, z, 'Outside GCP: Internet');
+
+  const se = el('g', { opacity: 0.38 }, svg);
+  STATIC_EDGES.forEach(([a, b]) => el('path', { d: pathD(route(a, b), 1), fill: 'none', stroke: 'var(--line)', 'stroke-width': 1.1 }, se));
+  layerEdges = el('g', {}, svg);
+  layerNodes = el('g', {}, svg);
+  layerFx = el('g', {}, svg);
+  Object.entries(NODES).forEach(([id, n]) => {
+    const g = el('g', { id: 'n-' + id }, layerNodes);
+    el('rect', { x: n.x - NW / 2, y: n.y - NH / 2, width: NW, height: NH, rx: 9, fill: 'var(--panel)', stroke: 'var(--gray)', 'stroke-width': 0.9 }, g);
+    el('text', { x: n.x, y: n.y - 5, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--text)' }, g, n.name);
+    el('text', { x: n.x, y: n.y + 13, 'text-anchor': 'middle', 'font-size': 10.2, fill: 'var(--muted)' }, g, n.sub);
+  });
+}
+
+function drawUpTo(upTo) {
+  layerEdges.innerHTML = ''; layerFx.innerHTML = '';
+  const st = {};
+  for (let i = 0; i <= upTo; i++) {
+    const s = steps[i];
+    st[s.f] = st[s.f] || 'used'; st[s.t] = st[s.t] || 'used';
+    if (s.kind === 'deny') st[s.t] = 'deny';
+    if (s.f === s.t) continue;
+    const segs = route(s.f, s.t);
+    el('path', { d: pathD(segs, 1), fill: 'none', stroke: COLORS[s.kind], 'stroke-width': i === upTo ? 2.8 : 1.7, opacity: i === upTo ? 1 : 0.78,
+      'stroke-dasharray': s.kind === 'human' ? '6 5' : '', 'stroke-linecap': 'round' }, layerEdges);
+    const [ex, ey] = pointAt(segs, 1), g = segs[segs.length - 1];
+    const ang = Math.atan2(g[3] - g[1], g[2] - g[0]);
+    const bx = ex - Math.cos(ang) * (NW / 2 * Math.abs(Math.cos(ang)) + NH / 2 * Math.abs(Math.sin(ang)) + 2);
+    const by = ey - Math.sin(ang) * (NW / 2 * Math.abs(Math.cos(ang)) + NH / 2 * Math.abs(Math.sin(ang)) + 2);
+    const tip = (a, r) => `${bx - Math.cos(ang + a) * r} ${by - Math.sin(ang + a) * r}`;
+    el('path', { d: `M${tip(0.5, 9)} L${bx} ${by} L${tip(-0.5, 9)}`, fill: 'none', stroke: COLORS[s.kind], 'stroke-width': 1.9, 'stroke-linecap': 'round' }, layerEdges);
+  }
+  Object.keys(NODES).forEach(id => {
+    const r = document.querySelector(`#n-${id} rect`), s = st[id];
+    r.setAttribute('stroke', s === 'deny' ? 'var(--red)' : s ? 'var(--purple)' : 'var(--gray)');
+    r.setAttribute('stroke-width', s === 'deny' ? 2.5 : s ? 1.6 : 0.9);
+    document.querySelector(`#n-${id}`).setAttribute('opacity', Object.keys(st).length && !s ? 0.5 : 1);
+  });
+  for (let i = 0; i <= upTo; i++) {
+    const s = steps[i];
+    if (s.kind === 'deny') {
+      const n = NODES[s.t], g = el('g', {}, layerFx);
+      const w = Math.max(118, s.label.length * 6.4 + 16);
+      el('rect', { x: n.x - w / 2, y: n.y - NH / 2 - 24, width: w, height: 20, rx: 10, fill: 'var(--red)' }, g);
+      el('text', { x: n.x, y: n.y - NH / 2 - 10, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 600, fill: '#fff' }, g, s.label);
+    }
+  }
+}
+
+const speed = () => parseFloat($('speed').value) || 1;
+function packet(i, done) {
+  const my = ++animTok, s = steps[i], dur = (s.f === s.t ? 850 : 1350) / speed(), t0 = performance.now();
+  const pk = el('g', {}, svg);
+  const w = Math.max(76, s.label.length * 6.3 + 20);
+  el('rect', { x: -w / 2, y: -12, width: w, height: 24, rx: 12, fill: COLORS[s.kind] }, pk);
+  el('text', { x: 0, y: 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600, fill: '#fff' }, pk, s.label);
+  const segs = s.f === s.t ? null : route(s.f, s.t);
+  function frame(now) {
+    if (my !== animTok) { pk.remove(); return; }
+    const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    drawUpTo(i - 1 < 0 ? -1 : i - 1);
+    if (segs) {
+      el('path', { d: pathD(segs, e), fill: 'none', stroke: COLORS[s.kind], 'stroke-width': 3.2, 'stroke-linecap': 'round' }, layerEdges);
+      const [x, y] = pointAt(segs, e);
+      pk.setAttribute('transform', `translate(${x},${y - 16})`);
+    } else {
+      const n = NODES[s.f];
+      pk.setAttribute('transform', `translate(${n.x},${n.y - NH / 2 - 16 - 10 * Math.sin(Math.PI * e)})`);
+    }
+    pk.setAttribute('opacity', k > .9 ? (1 - k) / .1 : 1);
+    if (k < 1) requestAnimationFrame(frame); else { pk.remove(); drawUpTo(i); done && done(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function vaultAt(upTo) {
+  const v = JSON.parse(JSON.stringify(vaultBefore));
+  for (let i = 0; i <= upTo; i++) if (steps[i].vaultSet) { const [p, u, val] = steps[i].vaultSet; v[p][u] = val; }
+  return v;
+}
+function renderVault(v) {
+  const row = (lbl, o) => `<tr><td>${lbl}</td><td class="${o.asfar ? 'yes' : 'no'}">${o.asfar ? 'asfar: token' : 'asfar: empty'}</td><td class="${o.alice ? 'yes' : 'no'}">${o.alice ? 'alice: empty' : 'alice: empty'}</td></tr>`;
+  $('vault').innerHTML = `<tr><td>crm-3lo</td><td class="${v.crm3lo.asfar ? 'yes' : 'no'}">${v.crm3lo.asfar ? 'asfar: token' : 'asfar: empty'}</td><td class="${v.crm3lo.alice ? 'yes' : 'no'}">${v.crm3lo.alice ? 'alice: token' : 'alice: empty'}</td></tr>` +
+    `<tr><td>github-3lo</td><td class="${v.gh3lo.asfar ? 'yes' : 'no'}">${v.gh3lo.asfar ? 'asfar: token' : 'asfar: empty'}</td><td class="${v.gh3lo.alice ? 'yes' : 'no'}">${v.gh3lo.alice ? 'alice: token' : 'alice: empty'}</td></tr>`;
+}
+function renderSeen(upTo) {
+  const m = Object.fromEntries(CREDS.map(([k]) => [k, new Set()]));
+  const latest = new Set();
+  for (let i = 0; i <= upTo; i++) {
+    const s = steps[i];
+    if (!s.cred || s.kind === 'deny') continue;
+    const who = (id) => ({ CR_ID: 'agent', AR: 'agent', CR_LEGACY: 'agent', ALB: 'ALB', SWP: 'SWP', NAT: 'NAT', EGRESS: 'egress', BROKER: 'broker', GEMINI: 'Gemini', CRM_MOCK: 'crm-mock', GH_OAUTH: 'GitHub', RAILWAY: 'Railway', GH_API: 'GitHub', BROWSER: 'browser', MEM: 'Memory' }[id]);
+    [who(s.f), who(s.t)].filter(Boolean).forEach(w => { m[s.cred].add(w); if (i === upTo) latest.add(w); });
+  }
+  $('seen').innerHTML = CREDS.map(([k, lbl]) => {
+    const list = [...m[k]];
+    const chips = list.length ? list.map(w => `<span class="chip${(upTo >= 0 && steps[upTo].cred === k && latest.has(w)) ? ' new' : ''}">${w}</span>`).join('') : '<span class="chip none">not used</span>';
+    return `<tr><td>${lbl}</td><td>${chips}</td></tr>`;
+  }).join('');
+}
+
+function show(i, anim) {
+  clearTimeout(dwell); animTok++;
+  if (i < 0) { cur = -1; drawUpTo(-1); renderVault(vaultBefore); renderSeen(-1); return; }
+  cur = i; const s = steps[i];
+  $('stepNum').textContent = `Step ${i + 1} of ${steps.length}`;
+  $('stepTitle').textContent = s.title;
+  $('stepDetail').innerHTML = s.detail;
+  $('stepCarry').innerHTML = s.carry ? `<span class="carry" style="border-color:${COLORS[s.kind]};color:${COLORS[s.kind]}">${s.carry}</span>` : '';
+  $('stepNote').innerHTML = s.note ? `<div class="note">${s.note}</div>` : '';
+  $('progress').textContent = `Step ${i + 1} / ${steps.length}`;
+  renderVault(vaultAt(i)); renderSeen(i);
+  Array.from($('log').children).forEach((li, j) => {
+    li.className = j === i ? 'cur' : (j < i ? 'done' : '');
+    if (steps[j].kind === 'deny' && j <= i) li.classList.add('deny');
+  });
+  const o = $('outcome');
+  if (i === steps.length - 1) { o.textContent = outcome.code; o.className = 'pill ' + outcome.cls; }
+  else { o.textContent = 'Running...'; o.className = 'pill'; }
+  const after = () => {
+    if (playing && cur < steps.length - 1) dwell = setTimeout(() => show(cur + 1, true), 1100 / speed());
+    else if (cur === steps.length - 1) { vault = vaultAt(cur); playing = false; setPlay(); }
+  };
+  if (anim) packet(i, after); else { drawUpTo(i); after(); }
+}
+
+function setPlay() { $('play').textContent = playing ? 'Pause' : 'Play'; }
+function togglePlay() {
+  if (!steps.length) return runCustom();
+  playing = !playing; setPlay(); clearTimeout(dwell);
+  if (playing) { if (cur >= steps.length - 1) show(0, true); else show(cur + 1, true); }
+}
+function next() { playing = false; setPlay(); if (cur < steps.length - 1) show(cur + 1, true); }
+function prev() { playing = false; setPlay(); show(cur - 1, false); }
+function clearVault() {
+  vault = { crm3lo: { asfar: false, alice: false, charlie: false }, gh3lo: { asfar: false, alice: false, charlie: false } };
+  vaultBefore = JSON.parse(JSON.stringify(vault));
+  renderVault(vault);
+}
+function cfg() {
+  return { agent: $('agent').value, provider: $('provider').value, scope: $('scope').disabled ? '' : $('scope').value,
+    user: $('user').value, authn: $('authn').value, prompt: $('prompt').value, path: $('path').value, tool: $('tool').value };
+}
+function runCustom() {
+  vaultBefore = JSON.parse(JSON.stringify(vault));
+  const c = cfg(), r = build(c);
+  steps = r.S; outcome = r.out;
+  $('scenarioText').textContent = outcome.text;
+  $('log').innerHTML = steps.map((s, j) => `<li onclick="playing=false;setPlay();show(${j},true)"><span class="n">${j + 1}</span><span>${s.title}</span></li>`).join('');
+  drawBase(); playing = true; setPlay(); show(0, true);
+}
+
+function syncControls() {
+  const p = $('provider').value, sc = SCOPES[p];
+  $('scope').innerHTML = sc.length ? sc.map(([v, l]) => `<option value="${v}">${l}</option>`).join('') : '<option>n/a</option>';
+  $('scope').disabled = !sc.length;
+  $('user').disabled = !(p === 'crm3lo' || p === 'gh3lo');
+  $('tool').disabled = p === 'gemini';
+  $('authn').disabled = $('agent').value !== 'CR_ID';
+}
+$('agent').addEventListener('change', syncControls);
+$('provider').addEventListener('change', syncControls);
+$('speed').addEventListener('input', e => $('speedv').textContent = e.target.value + 'x');
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowRight') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+const PRESETS = [
+  ['Flow 1: Cloud Run → SWP → NAT → Railway', 'f1', { agent: 'CR_ID', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'swp' }],
+  ['Flow 1: SWP Blocks example.com (403, SEC-09)', 'f1', { agent: 'CR_ID', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'unapproved' }],
+  ['Flow 1: SEC-08 default_denied (Binding)', 'f1', { agent: 'CR_ID', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'sec08' }],
+  ['Flow 1: Unauthenticated 401 (SEC-11)', 'f1', { agent: 'CR_ID', provider: 'gemini', authn: 'missing' }],
+  ['Flow 1: PSC 10.10.0.10 PENDING Timeout', 'f1', { agent: 'CR_ID', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'psc' }],
+  ['Flow 1: Edge Model Armor (SEC-05)', 'f1', { agent: 'CR_ID', provider: 'gemini', prompt: 'inject' }],
+  ['Flow 1: Regex RAG Cost ($0.12/1k lite)', 'f1', { agent: 'CR_ID', provider: 'gemini' }],
+  ['Flow 2: Agent Engine → Memory → Egress GW → Railway', 'f2', { agent: 'AR', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'egress' }],
+  ['Flow 2: Blocked Scope delete_repo (SEC-10)', 'f2', { agent: 'AR', provider: 'gh3lo', scope: 'delete_repo', user: 'asfar', path: 'egress' }],
+  ['Flow 2: Egress Model Armor (SEC-06)', 'f2', { agent: 'AR', provider: 'gh3lo', scope: 'read:user,repo', user: 'asfar', path: 'egress', tool: 'poison' }],
+  ['Flow 2: Cross-User Isolation (charlie, SEC-04)', 'f2', { agent: 'AR', provider: 'gh3lo', scope: 'read:user,repo', user: 'charlie', path: 'egress' }],
+  ['Stage 1: CRM API Key', 'sec', { agent: 'CR_ID', provider: 'crmkey' }],
+  ['Stage 2: 2LO Allowed (metrics:read)', 'sec', { agent: 'CR_ID', provider: 'crm2lo', scope: 'metrics:read' }],
+  ['Stage 2: 2LO Blocked (metrics:delete)', 'sec', { agent: 'CR_ID', provider: 'crm2lo', scope: 'metrics:delete' }],
+  ['Stage 3: CRM 3LO + PKCE (alice)', 'sec', { agent: 'CR_ID', provider: 'crm3lo', scope: 'deals:read', user: 'alice' }],
+  ['SEC-01: Legacy SA Denied', 'sec', { agent: 'CR_LEGACY', provider: 'gemini' }],
+];
+
+PRESETS.forEach(([name, cls, p], idx) => {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.className = cls;
+  b.onclick = () => {
+    Array.from($('presets').querySelectorAll('button')).forEach((btn, j) => btn.classList.toggle('active', j === idx));
+    $('agent').value = p.agent; $('provider').value = p.provider; syncControls();
+    if (p.scope) $('scope').value = p.scope;
+    $('user').value = p.user || 'asfar'; $('authn').value = p.authn || 'valid';
+    $('prompt').value = p.prompt || 'benign'; $('tool').value = p.tool || 'clean'; $('path').value = p.path || 'stage';
+    runCustom();
+  };
+  $('presets').appendChild(b);
+});
+
+syncControls();
+$('presets').querySelectorAll('button')[0].click();
+</script>
+</body>
+</html>

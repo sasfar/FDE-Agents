@@ -1,6 +1,7 @@
 # FDE-Agents: End-to-End GCP Agent Identity, Gateway, MCP & Eval Test Bed
 
 > **Google Cloud Project:** `geagent-sasfar-ooc` (`172882039333`) &bull; **Region:** `us-central1`  
+> **Animation Architecture Test bed (Unified End-to-End Simulator):** [`docs/animation_architecture_test_bed.html`](docs/animation_architecture_test_bed.html)  
 > **Interactive Flow 1 vs. Flow 2 Topology Animation:** [`docs/flow1_flow2_topology_animation.html`](docs/flow1_flow2_topology_animation.html)  
 > **Interactive Simulator v2 (SWP, PSC, Agent Engine, Memory Bank):** [`docs/test_bed_simulator_v2.html`](docs/test_bed_simulator_v2.html)  
 > **Interactive VPC Topology Animation:** [`docs/gcp_vpc_topology_animation.html`](docs/gcp_vpc_topology_animation.html)  
