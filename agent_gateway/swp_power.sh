@@ -30,6 +30,15 @@ case "$ACTION" in
     else
       echo "Status: NOT PRESENT"
     fi
+    echo ""
+    echo "=== SWP Auto-Generated Cloud NAT / Routers ($LOCATION) ==="
+    ROUTERS=$(gcloud compute routers list --regions="$LOCATION" --project="$PROJECT_ID" --filter="name~'^swg-autogen-router-'" --format="value(name)" 2>/dev/null || true)
+    if [ -n "$ROUTERS" ]; then
+      echo "$ROUTERS"
+      echo "Status: RUNNING (incurring Cloud NAT billing)"
+    else
+      echo "Status: NONE (no SWP Cloud NAT billing)"
+    fi
     ;;
 
   up)
@@ -61,7 +70,14 @@ case "$ACTION" in
       --location="$LOCATION" \
       --project="$PROJECT_ID" \
       --quiet || true
-    echo "Done! SWP ($SWP_NAME) is POWERED OFF (crm-swp-policy preserved at zero cost)."
+
+    echo "Cleaning up any SWP auto-generated Cloud NAT / Routers..."
+    ROUTERS=$(gcloud compute routers list --regions="$LOCATION" --project="$PROJECT_ID" --filter="name~'^swg-autogen-router-'" --format="value(name)" 2>/dev/null || true)
+    for r in $ROUTERS; do
+      echo "Deleting Cloud Router + NAT: $r"
+      gcloud compute routers delete "$r" --region="$LOCATION" --project="$PROJECT_ID" --quiet || true
+    done
+    echo "Done! SWP ($SWP_NAME) and its Cloud NAT are POWERED OFF (crm-swp-policy preserved at zero cost)."
     ;;
 
   *)
