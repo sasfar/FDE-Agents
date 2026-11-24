@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FDE-Agents — Flow 1 (Cloud Run + SWP + NAT) vs. Flow 2 (Agent Engine + Managed Egress GW)</title>
+<style>
+  :root {
+    --bg: #faf9f5; --panel: #ffffff; --text: #1f1e1d; --muted: #6b6a65; --line: #d8d6cc; --soft: #F1EFE8;
+    --gray: #888780; --purple: #534AB7; --amber: #BA7517; --coral: #D85A30; --teal: #1D9E75; --blue: #378ADD; --red: #E24B4A; --green: #3B6D11;
+    --zone-gcp: #EEEDFE; --zone-ext: #F1EFE8; --zone-vpc: #E8F5EF; --zone-ar: #EEF4FF; --hl: #fff6e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1e1d; --panel: #2a2927; --text: #ecebe6; --muted: #a3a29b; --line: #44433f; --soft: #383733;
+      --gray: #b4b2a9; --purple: #AFA9EC; --amber: #EF9F27; --coral: #F0997B; --teal: #5DCAA5; --blue: #85B7EB; --red: #F09595; --green: #97C459;
+      --zone-gcp: #2d2a4a; --zone-ext: #2f2e2b; --zone-vpc: #1f332b; --zone-ar: #1f2b3d; --hl: #3a3226;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 16px 22px 6px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 22px 8px; align-items: center; }
+  .presets span.t { font-size: 12px; color: var(--muted); margin-right: 4px; font-weight: 600; }
+  .presets button { font-size: 12.5px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  .presets button:hover { border-color: var(--purple); }
+  .presets button.f1 { border-left: 3px solid var(--teal); }
+  .presets button.f2 { border-left: 3px solid var(--blue); }
+  .presets button.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 10px 22px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .bar.sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+  button { font: inherit; font-size: 13.5px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .speed { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .grow { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 14px; padding: 14px 22px 32px; }
+  @media (max-width: 1180px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .outcome { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 10px; min-height: 34px; flex-wrap: wrap; }
+  .pill { font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .pill.ok { color: var(--green); border-color: var(--green); }
+  .pill.warn { color: var(--amber); border-color: var(--amber); }
+  .pill.bad { color: var(--red); border-color: var(--red); }
+  .scenario { color: var(--muted); font-size: 13px; }
+  svg text { font-family: inherit; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  .step-num { font-size: 12px; color: var(--muted); }
+  .step-title { font-size: 17px; font-weight: 600; margin: 2px 0 6px; }
+  .step-detail { font-size: 13.5px; line-height: 1.55; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+  .carry { display: inline-block; margin-top: 8px; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+  .note { margin-top: 10px; font-size: 12.5px; line-height: 1.55; background: var(--hl); border-left: 3px solid var(--amber); padding: 7px 9px; }
+  h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td, th { padding: 5px 4px; border-top: 1px solid var(--line); vertical-align: top; text-align: left; }
+  th { font-weight: 600; color: var(--muted); border-top: none; }
+  td:first-child { font-weight: 600; padding-right: 6px; }
+  .log { list-style: none; margin: 0; padding: 0; font-size: 12.5px; max-height: 290px; overflow: auto; }
+  .log li { display: flex; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+  .log li:hover { background: var(--soft); }
+  .log li.cur { background: var(--zone-gcp); font-weight: 500; }
+  .log li.done { color: var(--muted); }
+  .log li.deny { color: var(--red); }
+  .log .n { min-width: 22px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 22px; border-top: 3px solid; display: inline-block; }
+  .kbd { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FDE-Agents — Flow 1 (Cloud Run + SWP + Cloud NAT) vs. Flow 2 (Agent Engine + Managed Egress GW)</h1>
+  <div class="sub">Project <code>geagent-sasfar-ooc</code> (<code>us-central1</code>). Interactive animated topology contrasting <b>Flow 1</b> (customer-managed <code>agent-lab-vpc</code> egress through SWP <code>10.10.0.40:80</code> + <code>swg-autogen-nat</code>) with <b>Flow 2</b> (Google-managed Vertex AI Agent Engine through <code>crm-egress-gw</code> + Model Armor + Memory Bank).</div>
+</header>
+
+<div class="presets" id="presets"><span class="t">Select Flow Scenario:</span></div>
+
+<div class="bar sticky">
+  <button class="primary" onclick="runCurrent()">Replay flow</button>
+  <button id="play" onclick="togglePlay()">Play</button>
+  <button onclick="prev()">Back</button>
+  <button onclick="next()">Next</button>
+  <label class="speed">Speed <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1"><span id="speedv">1x</span></label>
+  <span class="grow"></span>
+  <span class="scenario" id="progress">Select a flow above</span>
+</div>
+
+<main>
+  <section>
+    <div class="card">
+      <div class="outcome"><span class="pill" id="outcome">Idle</span><span class="scenario" id="scenarioText">Click any Flow 1 or Flow 2 scenario above to animate it step by step.</span></div>
+      <svg id="map" viewBox="0 0 1240 690" width="100%" role="img" aria-label="Flow 1 and Flow 2 topology animation"></svg>
+      <div class="legend">
+        <span><i class="sw" style="border-color:var(--gray)"></i>Request / Ingress</span>
+        <span><i class="sw" style="border-color:var(--purple)"></i>SPIFFE Identity / Memory</span>
+        <span><i class="sw" style="border-color:var(--amber)"></i>API Key / AuthN Token</span>
+        <span><i class="sw" style="border-color:var(--teal)"></i>3LO Token / Allowed Egress</span>
+        <span><i class="sw" style="border-color:var(--blue)"></i>Response / Grounded Data</span>
+        <span><i class="sw" style="border-color:var(--red)"></i>Blocked / Denied (401 / 403)</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card" aria-live="polite">
+      <div class="step-num" id="stepNum">Waiting</div>
+      <div class="step-title" id="stepTitle">Ready</div>
+      <div class="step-detail" id="stepDetail">Choose a Flow 1 or Flow 2 scenario to see every hop, identity check, proxy/NAT translation, Model Armor scan, and cost metric.</div>
+      <div id="stepCarry"></div>
+      <div id="stepNote"></div>
+    </div>
+
+    <div class="card">
+      <h3>Flow 1 vs. Flow 2 Comparison</h3>
+      <table>
+        <thead><tr><th>Layer</th><th>Flow 1 (Cloud Run)</th><th>Flow 2 (Agent Engine)</th></tr></thead>
+        <tbody>
+          <tr><td>Runtime</td><td><code>crm-agent-id</code> (VPC)</td><td><code>test-agent-ar</code> (Managed)</td></tr>
+          <tr><td>Identity</td><td>SPIFFE <code>AGENT_IDENTITY</code></td><td>SPIFFE <code>RuntimeIdentity</code></td></tr>
+          <tr><td>Ingress</td><td>ALB <code>35.209.113.245</code> + Armor + <code>401</code> AuthN</td><td>Vertex AI IAM (<code>reasoningEngines:query</code>)</td></tr>
+          <tr><td>Egress Proxy</td><td>SWP <code>10.10.0.40:80</code> + <code>swg-autogen-nat</code></td><td><code>crm-egress-gw</code> (Google-managed)</td></tr>
+          <tr><td>Guardrail</td><td><code>crm-swp-policy</code> + <code>crm-egress-swp-gw</code></td><td>Model Armor (<code>crm-egress-guardrail-tpl</code>)</td></tr>
+          <tr><td>State / KB</td><td>Regex RAG (<code>5.000</code>, <code>$0.12/1k</code> lite)</td><td>Memory Bank (<code>477.9ms</code>, <code>0</code> leak)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Steps in this flow</h3>
+      <ul class="log" id="log"></ul>
+      <div class="kbd">Click any step to jump to it. Keyboard: Space pauses/plays, Left/Right arrows step.</div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const NODES = {
+  // Left: Clients
+  MAC:       { x: 108,  y: 160, name: 'Client / Eval Harness', sub: 'local-mac-agent / evals' },
+  BROWSER:   { x: 108,  y: 520, name: 'User Browser', sub: '3LO OAuth consent' },
+
+  // Flow 1 (Top band inside GCP / VPC)
+  ALB:       { x: 320,  y: 160, name: 'External ALB + Armor', sub: '35.209.113.245 (SEC-05)' },
+  CR_ID:     { x: 540,  y: 160, name: 'Cloud Run: crm-agent-id', sub: 'SPIFFE + 401 AuthN + RAG' },
+  SWP:       { x: 755,  y: 135, name: 'SWP: crm-swp-egress', sub: '10.10.0.40:80 + swp-gw' },
+  NAT:       { x: 755,  y: 230, name: 'Cloud NAT: swg-autogen', sub: 'Private 10.10.x -> Public IP' },
+
+  // Shared Governance (Middle)
+  BROKER:    { x: 540,  y: 350, name: 'GCP Auth Broker', sub: 'agentidentitycredentials' },
+  REGISTRY:  { x: 755,  y: 350, name: 'Cloud Agent Registry', sub: 'RuntimeIdentity + railway-gh-mcp' },
+  GEMINI:    { x: 320,  y: 350, name: 'Gemini API', sub: '3.5-lite | 3.8-flash | 3.1-pro' },
+
+  // Flow 2 (Bottom band inside GCP)
+  AR:        { x: 540,  y: 520, name: 'Agent Engine: test-agent-ar', sub: 'ReasoningEngine 889432...456' },
+  MEM:       { x: 320,  y: 520, name: 'Vertex Memory Bank', sub: 'Scoped user_id (477.9ms)' },
+  EGRESS:    { x: 755,  y: 520, name: 'Managed Egress GW', sub: 'crm-egress-gw + Model Armor' },
+
+  // Right: Outside GCP (Internet)
+  RAILWAY:   { x: 1090, y: 185, name: 'Railway MCP Server', sub: 'gh-mcp-server (Bun)' },
+  GH_API:    { x: 1090, y: 345, name: 'GitHub REST API', sub: 'api.github.com' },
+  GH_OAUTH:  { x: 1090, y: 495, name: 'GitHub OAuth (3LO)', sub: 'github.com/login/oauth' },
+  BAD_HOST:  { x: 1090, y: 615, name: 'Unapproved Host', sub: 'example.com/mcp (403)' },
+};
+
+const NW = 172, NH = 56;
+const WAYPOINTS = {
+  'MAC|AR':       [[108, 430], [420, 430], [420, 520]],
+  'AR|MAC':       [[420, 520], [420, 430], [108, 430]],
+  'SWP|RAILWAY':  [[890, 135], [890, 185]],
+  'NAT|RAILWAY':  [[920, 230], [920, 185]],
+  'RAILWAY|NAT':  [[920, 185], [920, 230]],
+  'SWP|BAD_HOST': [[940, 135], [940, 615]],
+  'EGRESS|RAILWAY': [[915, 520], [915, 185]],
+  'RAILWAY|EGRESS': [[915, 185], [915, 520]],
+  'BROKER|GH_OAUTH': [[645, 350], [645, 435], [965, 435], [965, 495]],
+  'AR|BROKER':    [[540, 450]],
+  'BROKER|AR':    [[540, 450]],
+  'CR_ID|GEMINI': [[430, 160], [430, 350]],
+  'GEMINI|CR_ID': [[430, 350], [430, 160]],
+};
+
+const STATIC_EDGES = [
+  ['MAC','ALB'],['ALB','CR_ID'],['CR_ID','SWP'],['SWP','NAT'],['NAT','RAILWAY'],['SWP','BAD_HOST'],
+  ['CR_ID','BROKER'],['CR_ID','GEMINI'],['MAC','AR'],['AR','MEM'],['AR','BROKER'],['AR','EGRESS'],
+  ['EGRESS','RAILWAY'],['RAILWAY','GH_API'],['BROKER','GH_OAUTH'],['AR','REGISTRY'],['SWP','REGISTRY'],
+  ['BROWSER','GH_OAUTH']
+];
+
+const COLORS = {
+  req: 'var(--gray)', id: 'var(--purple)', key: 'var(--amber)',
+  token: 'var(--teal)', data: 'var(--blue)', deny: 'var(--red)'
+};
+
+const SCENARIOS = [
+  {
+    id: 'f1_happy', group: 'f1',
+    name: 'Flow 1: Cloud Run → SWP → Cloud NAT → Railway MCP',
+    outcome: ['ALLOWED (Flow 1)', 'ok', 'Cloud Run routed outbound MCP traffic through VPC SWP (10.10.0.40:80) + Cloud NAT to Railway.'],
+    steps: [
+      { f: 'MAC', t: 'ALB', kind: 'req', label: 'POST /query + X-Agent-Auth', carry: 'AGENT_CALLER_TOKEN',
+        title: 'Caller hits External ALB (35.209.113.245)',
+        detail: 'Client sends request to <code>http://35.209.113.245</code> with <code>X-Agent-Auth</code>. Direct <code>*.run.app</code> access is blocked (<code>internal-and-cloud-load-balancing</code>).' },
+      { f: 'ALB', t: 'CR_ID', kind: 'req', label: 'Model Armor PASS + 200 AuthN', carry: 'Prompt screened + Caller AuthN',
+        title: 'Edge Model Armor + Cloud Run AuthN pass',
+        detail: '<code>crm-alb-ma-extension</code> screens the prompt (<code>SEC-05</code>), forwards to <code>crm-agent-id</code> (<code>rev 00012-drl</code>), and <code>enforce_caller_authn</code> validates <code>AGENT_CALLER_TOKEN</code>.' },
+      { f: 'CR_ID', t: 'BROKER', kind: 'id', label: 'SPIFFE AGENT_IDENTITY', carry: 'principal://agents.global.org-...',
+        title: 'Cloud Run authenticates to GCP Auth Broker',
+        detail: '<code>crm-agent-id</code> presents its cryptographic SPIFFE workload identity to fetch <code>gh-mcp-token</code> and <code>asfar</code>\'s <code>github-3lo</code> token with zero secrets in code.' },
+      { f: 'BROKER', t: 'CR_ID', kind: 'token', label: 'gh-mcp-token + gho_... (3LO)', carry: 'Scoped Bearer + User 3LO',
+        title: 'Broker releases scoped tokens',
+        detail: 'Broker returns the Railway MCP bearer token and <code>asfar</code>\'s scoped GitHub 3LO token (<code>read:user,repo</code>).' },
+      { f: 'CR_ID', t: 'SWP', kind: 'token', label: 'Proxy 10.10.0.40:80', carry: 'Direct VPC Egress',
+        title: 'Flow 1: Cloud Run routes egress to SWP',
+        detail: 'Because <code>crm-agent-id</code> uses Direct VPC Egress in <code>agent-lab-subnet</code>, outbound HTTPS goes to <code>EGRESS_GW_PROXY_IP=10.10.0.40:80</code> (<code>crm-swp-egress</code> + <code>crm-egress-swp-gw</code>).',
+        note: 'SWP enforces <code>crm-swp-policy</code> (URL allowlist). Unapproved hosts are rejected with <code>403</code>.' },
+      { f: 'SWP', t: 'NAT', kind: 'token', label: 'swg-autogen-nat', carry: 'Private IP -> Public Egress IP',
+        title: 'SWP translates private VPC IP via Cloud NAT',
+        detail: 'SWP uses its auto-generated Cloud NAT (<code>swg-autogen-nat</code> on <code>swg-autogen-router</code>) to reach public internet endpoints from inside <code>agent-lab-vpc</code>.',
+        note: 'This SWP + Cloud NAT pair is what incurs hourly VPC networking charges—use <code>./agent_gateway/swp_power.sh down</code> when idle.' },
+      { f: 'NAT', t: 'RAILWAY', kind: 'token', label: 'MCP gh_whoami', carry: 'Bearer + X-GitHub-Token',
+        title: 'Egress reaches Railway gh-mcp-server',
+        detail: '<code>crm-swp-policy</code> allows <code>gh-mcp-server-production.up.railway.app</code> and forwards the MCP call.' },
+      { f: 'RAILWAY', t: 'GH_API', kind: 'token', label: 'GET /user', carry: 'gho_... (asfar)',
+        title: 'Railway MCP calls live GitHub REST API',
+        detail: '<code>gh-mcp-server</code> validates the bearer token and calls <code>https://api.github.com/user</code> for <code>sasfar</code>.' },
+      { f: 'RAILWAY', t: 'NAT', kind: 'data', label: '200 OK (sasfar JSON)', carry: 'Live GitHub payload',
+        title: 'GitHub response returns via NAT -> SWP',
+        detail: 'Response flows back into <code>agent-lab-vpc</code> through Cloud NAT and SWP.' },
+      { f: 'SWP', t: 'CR_ID', kind: 'data', label: 'via_egress_gw: true', carry: 'Screened egress result',
+        title: 'SWP delivers response to crm-agent-id',
+        detail: 'Cloud Run receives the live MCP result.' },
+      { f: 'CR_ID', t: 'ALB', kind: 'data', label: '200 OK JSON', carry: 'Agent response',
+        title: 'Cloud Run returns response through ALB',
+        detail: 'Response passes back through <code>crm-agent-id-bs</code>.' },
+      { f: 'ALB', t: 'MAC', kind: 'data', label: 'Final Answer', carry: 'Flow 1 complete',
+        title: 'Caller receives Flow 1 result',
+        detail: 'End-to-end VPC-governed Cloud Run flow complete.' }
+    ]
+  },
+  {
+    id: 'f1_swp_403', group: 'f1',
+    name: 'Flow 1: SWP Blocks Unapproved Host (example.com → 403, SEC-09)',
+    outcome: ['BLOCKED BY SWP (403)', 'bad', 'SEC-09 passed: SWP crm-swp-policy blocked egress to example.com before Cloud NAT.'],
+    steps: [
+      { f: 'MAC', t: 'ALB', kind: 'req', label: 'POST /api/test-egress', carry: 'target=example.com',
+        title: 'Caller asks crm-agent-id to fetch example.com',
+        detail: '<code>eval_agents.py</code> triggers <code>SEC-09</code> via the ALB.' },
+      { f: 'ALB', t: 'CR_ID', kind: 'req', label: 'AuthN + Armor PASS', carry: 'Forwarded to VPC',
+        title: 'ALB forwards request to crm-agent-id',
+        detail: 'Request enters <code>agent-lab-vpc</code>.' },
+      { f: 'CR_ID', t: 'SWP', kind: 'req', label: 'CONNECT example.com:443', carry: 'Proxy 10.10.0.40:80',
+        title: 'Cloud Run tunnels outbound request to SWP',
+        detail: '<code>crm-agent-id</code> sends the CONNECT tunnel request to <code>crm-swp-egress</code>.' },
+      { f: 'SWP', t: 'SWP', kind: 'deny', label: '403 FORBIDDEN (SEC-09)', carry: 'crm-swp-policy deny',
+        title: 'SWP blocks example.com at L7 policy',
+        detail: '<code>example.com</code> is not in <code>crm-swp-policy</code> (<code>allow-mcp-and-crm</code>), so SWP drops the connection with <code>403 Forbidden</code>. Traffic never reaches Cloud NAT or the internet.' }
+    ]
+  },
+  {
+    id: 'f1_sec08', group: 'f1',
+    name: 'Flow 1: SEC-08 default_denied Pending Agent Registry Binding',
+    outcome: ['SEC-08: DEFAULT_DENIED (403)', 'warn', 'railway-gh-mcp is registered, but crm-egress-swp-gw enforces default_denied until agentregistry.bindings.create IAM is granted.'],
+    steps: [
+      { f: 'CR_ID', t: 'SWP', kind: 'req', label: 'CONNECT railway-gh-mcp', carry: 'via crm-egress-swp-gw',
+        title: 'Cloud Run routes MCP call through crm-egress-swp-gw',
+        detail: '<code>crm-agent-id</code> sends outbound request through SWP backed by <code>selfManaged</code> AgentGateway <code>crm-egress-swp-gw</code>.' },
+      { f: 'SWP', t: 'REGISTRY', kind: 'id', label: 'Check Binding', carry: 'crm-agent-id -> railway-gh-mcp?',
+        title: 'Gateway checks Cloud Agent Registry for binding',
+        detail: '<code>railway-gh-mcp</code> is registered in <code>us-central1</code> Agent Registry, but no Binding resource links <code>crm-agent-id</code> to it yet.' },
+      { f: 'REGISTRY', t: 'SWP', kind: 'deny', label: 'NO BINDING (IAM block)', carry: 'needs bindings.create',
+        title: 'Missing agentregistry.bindings.create permission',
+        detail: '<code>gcloud agent-registry bindings create</code> returned <code>PERMISSION_DENIED</code> for <code>agentregistry.bindings.create</code>.' },
+      { f: 'SWP', t: 'SWP', kind: 'deny', label: '403 default_denied', carry: 'SEC-08 active guard',
+        title: 'SWP returns 403 default_denied',
+        detail: 'Zero-trust default deny works as designed until the binding is created.' }
+    ]
+  },
+  {
+    id: 'f1_401', group: 'f1',
+    name: 'Flow 1: Unauthenticated ALB Call Blocked (401, SEC-11)',
+    outcome: ['401 UNAUTHORIZED (SEC-11)', 'bad', 'enforce_caller_authn rejected unauthenticated POST http://35.209.113.245/query with HTTP 401.'],
+    steps: [
+      { f: 'MAC', t: 'ALB', kind: 'req', label: 'POST /query (no token)', carry: 'Missing X-Agent-Auth',
+        title: 'Unauthenticated caller hits http://35.209.113.245/query',
+        detail: 'Caller omits <code>Authorization: Bearer</code>, <code>X-Agent-Auth</code>, and <code>X-Goog-IAP-JWT-Assertion</code>.' },
+      { f: 'ALB', t: 'CR_ID', kind: 'req', label: 'Forward to Cloud Run', carry: 'No caller credential',
+        title: 'ALB forwards request to crm-agent-id',
+        detail: 'Edge Model Armor sees a benign prompt and forwards to FastAPI.' },
+      { f: 'CR_ID', t: 'CR_ID', kind: 'deny', label: '401 UNAUTHORIZED (SEC-11)', carry: 'enforce_caller_authn',
+        title: 'FastAPI middleware rejects with 401',
+        detail: '<code>enforce_caller_authn</code> rejects the request immediately before any LLM or Broker call executes.' }
+    ]
+  },
+  {
+    id: 'f1_sec05', group: 'f1',
+    name: 'Flow 1: Edge Model Armor Blocks Prompt Injection (403, SEC-05)',
+    outcome: ['BLOCKED AT EDGE (SEC-05)', 'bad', 'crm-alb-ma-extension (failOpen: false) stopped prompt injection before Cloud Run.'],
+    steps: [
+      { f: 'MAC', t: 'ALB', kind: 'req', label: 'Prompt injection', carry: 'Ignore instructions...',
+        title: 'Malicious prompt sent to External ALB',
+        detail: 'Caller sends a prompt injection payload to <code>http://35.209.113.245/query</code>.' },
+      { f: 'ALB', t: 'ALB', kind: 'deny', label: '403 MODEL ARMOR (SEC-05)', carry: 'crm-guardrail-tpl',
+        title: 'Edge Model Armor blocks at the ALB',
+        detail: '<code>crm-alb-ma-extension</code> (<code>failOpen: false</code>) flags the prompt and returns <code>403</code>. <code>crm-agent-id</code> never wakes up.' }
+    ]
+  },
+  {
+    id: 'f2_happy', group: 'f2',
+    name: 'Flow 2: Agent Engine → Memory Bank → Managed Egress GW → Railway MCP',
+    outcome: ['ALLOWED (Flow 2)', 'ok', 'test-agent-ar retrieved Memory Bank context (477.9ms) and called Railway MCP via Google-managed crm-egress-gw (no VPC SWP/NAT needed).'],
+    steps: [
+      { f: 'MAC', t: 'AR', kind: 'req', label: 'reasoningEngines:query', carry: 'mode="mcp", user_id="asfar"',
+        title: 'Caller invokes Vertex AI Agent Engine',
+        detail: '<code>eval_agents.py</code> calls <code>ReasoningEngine 8894320367376531456:query</code> directly via Vertex AI IAM—no ALB or VPC required.' },
+      { f: 'AR', t: 'MEM', kind: 'id', label: 'retrieve(user_id="asfar")', carry: '477.9 ms | 0 leak',
+        title: 'Flow 2: Retrieve scoped facts from Memory Bank',
+        detail: '<code>test-agent-ar</code> queries Vertex AI Memory Bank scoped to <code>asfar</code> (verified <code>0</code> cross-user leakage vs. <code>alice</code> in <code>eval_memory_bank.py</code>).' },
+      { f: 'MEM', t: 'AR', kind: 'data', label: 'Scoped user memories', carry: 'asfar context',
+        title: 'Memory Bank returns user-scoped context',
+        detail: 'Context is injected into the agent turn.' },
+      { f: 'AR', t: 'BROKER', kind: 'id', label: 'SPIFFE RuntimeIdentity', carry: 'Fresh client per call',
+        title: 'Agent Engine presents RuntimeIdentity to Auth Broker',
+        detail: '<code>agent_ar/engine.py</code> creates a fresh <code>AuthProviderCredentialsServiceClient()</code> per <code>call_mcp</code> call and authenticates via its Agent Registry <code>RuntimeIdentity</code> (<code>SEC-07</code>).' },
+      { f: 'BROKER', t: 'AR', kind: 'token', label: 'gh-mcp-token + github-3lo', carry: 'gho_... (asfar)',
+        title: 'Broker releases Railway + GitHub 3LO tokens',
+        detail: 'Broker returns scoped tokens for <code>asfar</code>.' },
+      { f: 'AR', t: 'EGRESS', kind: 'token', label: 'AGENT_TO_ANYWHERE', carry: 'No SWP / No Cloud NAT',
+        title: 'Flow 2: Outbound call routes via Google-managed crm-egress-gw',
+        detail: 'Unlike Flow 1, Agent Engine does <b>not</b> use your VPC SWP or Cloud NAT. Google\'s managed runtime routes egress through <code>crm-egress-gw</code> (<code>AGENT_TO_ANYWHERE</code>) with Model Armor inspection.' },
+      { f: 'EGRESS', t: 'RAILWAY', kind: 'token', label: 'MCP gh_list_my_repos', carry: 'Bearer + X-GitHub-Token',
+        title: 'Managed Egress Gateway forwards to Railway',
+        detail: '<code>crm-egress-gw</code> forwards the live MCP tool call to <code>gh-mcp-server</code>.' },
+      { f: 'RAILWAY', t: 'GH_API', kind: 'token', label: 'GET /user/repos', carry: 'gho_... (asfar)',
+        title: 'Railway queries GitHub REST API',
+        detail: 'Returns live repositories for <code>sasfar</code>.' },
+      { f: 'RAILWAY', t: 'EGRESS', kind: 'data', label: 'Repo list JSON', carry: 'Tool output',
+        title: 'Result returns to Managed Egress Gateway',
+        detail: '<code>crm-egress-gw</code> receives the tool response for Model Armor scanning.' },
+      { f: 'EGRESS', t: 'AR', kind: 'data', label: 'Armor PASS (Clean)', carry: 'crm-egress-guardrail-tpl',
+        title: 'Egress Model Armor clears response',
+        detail: 'Response is clean and delivered back to <code>test-agent-ar</code>.' },
+      { f: 'AR', t: 'MAC', kind: 'data', label: 'ALLOWED (sasfar repos)', carry: 'Flow 2 complete',
+        title: 'Caller receives Flow 2 result',
+        detail: '<code>SEC-10</code> verified live <code>gh_whoami</code> and <code>gh_list_my_repos</code>.' }
+    ]
+  },
+  {
+    id: 'f2_blocked_scope', group: 'f2',
+    name: 'Flow 2: Agent Engine Blocked Scope (delete_repo → DENIED, SEC-10)',
+    outcome: ['DENIED_BY_GCP_BROKER (SEC-10)', 'bad', 'github-3lo blockedScopes rejected delete_repo before any GitHub or Railway call.'],
+    steps: [
+      { f: 'MAC', t: 'AR', kind: 'req', label: 'scope=delete_repo', carry: 'Blocked scope test',
+        title: 'Caller requests dangerous scope delete_repo',
+        detail: '<code>SEC-10</code> asks <code>test-agent-ar</code> for a <code>github-3lo</code> token with <code>delete_repo</code>.' },
+      { f: 'AR', t: 'BROKER', kind: 'id', label: 'SPIFFE + delete_repo', carry: 'RuntimeIdentity',
+        title: 'Agent Engine asks Auth Broker for delete_repo',
+        detail: 'Agent Engine forwards the scope request to <code>agentidentitycredentials.googleapis.com</code>.' },
+      { f: 'BROKER', t: 'BROKER', kind: 'deny', label: 'DENIED_BY_GCP_BROKER', carry: 'blockedScopes guardrail',
+        title: 'Broker rejects delete_repo immediately',
+        detail: '<code>delete_repo</code> is in <code>github-3lo</code> <code>blockedScopes</code>. No token is issued and GitHub is never contacted.' }
+    ]
+  },
+  {
+    id: 'f2_sec06', group: 'f2',
+    name: 'Flow 2: Egress Model Armor Blocks Poisoned Output (SEC-06)',
+    outcome: ['BLOCKED BY EGRESS ARMOR (SEC-06)', 'bad', 'crm-egress-guardrail-tpl stopped indirect prompt injection in tool output before it reached the LLM.'],
+    steps: [
+      { f: 'AR', t: 'EGRESS', kind: 'token', label: 'MCP gh_get_poisoned_issue', carry: 'Via crm-egress-gw',
+        title: 'Agent Engine calls MCP tool via crm-egress-gw',
+        detail: 'Request goes out through Google-managed Egress Gateway.' },
+      { f: 'EGRESS', t: 'RAILWAY', kind: 'token', label: 'Fetch issue body', carry: 'MCP call',
+        title: 'Railway returns issue containing hidden injection',
+        detail: 'Tool output includes hidden prompt injection text.' },
+      { f: 'RAILWAY', t: 'EGRESS', kind: 'data', label: 'Poisoned JSON', carry: 'Indirect injection',
+        title: 'Poisoned response hits Managed Egress Gateway',
+        detail: '<code>crm-egress-ma-extension</code> inspects the response body.' },
+      { f: 'EGRESS', t: 'EGRESS', kind: 'deny', label: 'BLOCKED (SEC-06)', carry: 'crm-egress-guardrail-tpl',
+        title: 'Egress Model Armor drops poisoned output',
+        detail: 'The poisoned text never reaches <code>test-agent-ar</code>\'s LLM context.' }
+    ]
+  },
+  {
+    id: 'f2_sec04', group: 'f2',
+    name: 'Flow 2: Cross-User 3LO Isolation (charlie → CONSENT_REQUIRED, SEC-04)',
+    outcome: ['CONSENT_REQUIRED (SEC-04)', 'warn', 'charlie@sadasystems.com has no vaulted github-3lo token and cannot access asfar\'s token.'],
+    steps: [
+      { f: 'MAC', t: 'AR', kind: 'req', label: 'user_id=charlie@sadasystems.com', carry: 'Cross-user test',
+        title: 'Caller queries Agent Engine as charlie',
+        detail: '<code>SEC-04</code> tests per-user 3LO vault isolation.' },
+      { f: 'AR', t: 'BROKER', kind: 'id', label: 'Lookup charlie token', carry: 'github-3lo',
+        title: 'Broker checks per-user token vault',
+        detail: '<code>asfar</code> has a vaulted token, but tokens are strictly keyed by <code>user_id</code>.' },
+      { f: 'BROKER', t: 'AR', kind: 'key', label: 'CONSENT_REQUIRED', carry: 'OAuth authorize URL',
+        title: 'Broker returns CONSENT_REQUIRED',
+        detail: 'Zero cross-user leakage: <code>charlie</code> must complete their own GitHub 3LO consent.' }
+    ]
+  },
+  {
+    id: 'f1_rag_cost', group: 'f1',
+    name: 'Flow 1: Grounded RAG Cost & Latency (flash-lite $0.12/1k vs 3.8-flash $1.41/1k)',
+    outcome: ['5.000 GROUNDEDNESS | 45% FEWER TOKENS', 'ok', 'Regex RAG achieved 5.000 Groundedness across all 3 Gemini models; flash-lite cost $0.122/1k at 808.5 ms.'],
+    steps: [
+      { f: 'MAC', t: 'ALB', kind: 'req', label: 'POST /query (grounding=rag)', carry: 'gaming_eval_dataset.jsonl',
+        title: 'Eval suite sends gaming/GTA 6 query',
+        detail: '<code>eval_gaming_suite.py</code> tests <code>gemini-3.5-flash-lite</code>, <code>3.8-flash</code>, and <code>3.1-pro-preview</code>.' },
+      { f: 'ALB', t: 'CR_ID', kind: 'req', label: 'Regex RAG (_retrieve_kb_context)', carry: '768.1 avg prompt tok',
+        title: 'crm-agent-id retrieves top KB chunks via regex tokenization',
+        detail: '<code>re.findall(r"[a-z0-9]+", ...)</code> splits underscore identifiers (e.g. <code>conservative_gross</code>), cutting prompt tokens by <b>45.0%</b> vs. <code>raw_kb</code> (<code>768.1</code> vs <code>1397.1</code>).' },
+      { f: 'CR_ID', t: 'GEMINI', kind: 'key', label: 'generateContent', carry: 'flash-lite | 3.8-flash | 3.1-pro',
+        title: 'Cloud Run calls Gemini API',
+        detail: '<code>flash-lite</code>: <code>808.5 ms</code> (<code>$0.122/1k</code>) &bull; <code>3.8-flash</code>: <code>5023.2 ms</code> (<code>$1.415/1k</code>) &bull; <code>3.1-pro</code>: <code>5473.7 ms</code> (<code>$8.367/1k</code>).' },
+      { f: 'GEMINI', t: 'CR_ID', kind: 'data', label: '5.000 Grounded Answer', carry: '1.000 Fact Recall (3.8)',
+        title: 'Gemini returns grounded forecast',
+        detail: 'All three models score <b>5.000</b> Groundedness.' },
+      { f: 'CR_ID', t: 'MAC', kind: 'data', label: 'Answer + usage telemetry', carry: 'Prompt/Output/Cost',
+        title: 'Response + token telemetry returned to eval harness',
+        detail: 'Logged for cost-per-1k-queries comparison.' }
+    ]
+  }
+];
+
+let steps = [], outcome = null, cur = -1, playing = false, animTok = 0, dwell = null, activePreset = null;
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== '') e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function route(a, b) {
+  const pts = [NODES[a], NODES[b]].map(n => [n.x, n.y]);
+  const w = WAYPOINTS[`${a}|${b}`];
+  if (w) pts.splice(1, 0, ...w);
+  const off = 4, segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1, nx = -(y2 - y1) / L * off, ny = (x2 - x1) / L * off;
+    segs.push([x1 + nx, y1 + ny, x2 + nx, y2 + ny, L]);
+  }
+  return segs;
+}
+function pointAt(segs, frac) {
+  const total = segs.reduce((s, g) => s + g[4], 0);
+  let d = total * frac;
+  for (const g of segs) {
+    if (d <= g[4]) { const k = d / g[4]; return [g[0] + (g[2] - g[0]) * k, g[1] + (g[3] - g[1]) * k]; }
+    d -= g[4];
+  }
+  const g = segs[segs.length - 1]; return [g[2], g[3]];
+}
+function pathD(segs, frac) {
+  const total = segs.reduce((s, g) => s + g[4], 0);
+  let d = total * frac, out = `M${segs[0][0]} ${segs[0][1]}`;
+  for (const g of segs) {
+    if (d >= g[4]) { out += ` L${g[2]} ${g[3]}`; d -= g[4]; }
+    else { const k = d / g[4]; out += ` L${g[0] + (g[2] - g[0]) * k} ${g[1] + (g[3] - g[1]) * k}`; break; }
+  }
+  return out;
+}
+
+const svg = $('map');
+let layerEdges, layerNodes, layerFx;
+function drawBase() {
+  svg.innerHTML = '';
+  const z = el('g', {}, svg);
+  el('rect', { x: 8, y: 40, width: 200, height: 635, rx: 12, fill: 'var(--zone-ext)', stroke: 'var(--line)' }, z);
+  el('text', { x: 20, y: 62, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--muted)' }, z, 'Outside GCP: Clients');
+
+  el('rect', { x: 222, y: 10, width: 730, height: 665, rx: 12, fill: 'var(--zone-gcp)', stroke: 'var(--purple)', 'stroke-dasharray': '5 4', 'stroke-width': 0.9 }, z);
+  el('text', { x: 236, y: 31, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--purple)' }, z, 'Google Cloud: geagent-sasfar-ooc (us-central1)');
+
+  // Flow 1 VPC Band
+  el('rect', { x: 438, y: 50, width: 430, height: 225, rx: 10, fill: 'var(--zone-vpc)', stroke: 'var(--teal)', 'stroke-dasharray': '6 4', 'stroke-width': 1.2 }, z);
+  el('text', { x: 450, y: 70, 'font-size': 11.5, 'font-weight': 600, fill: 'var(--teal)' }, z, 'FLOW 1 — agent-lab-vpc (10.10.0.0/24 + proxy-subnet 10.10.1.0/24)');
+
+  // Flow 2 Agent Runtime Band
+  el('rect', { x: 236, y: 445, width: 632, height: 140, rx: 10, fill: 'var(--zone-ar)', stroke: 'var(--blue)', 'stroke-dasharray': '6 4', 'stroke-width': 1.2 }, z);
+  el('text', { x: 248, y: 465, 'font-size': 11.5, 'font-weight': 600, fill: 'var(--blue)' }, z, 'FLOW 2 — Google-Managed Vertex AI Agent Runtime (No VPC SWP / NAT needed)');
+
+  el('rect', { x: 966, y: 40, width: 266, height: 635, rx: 12, fill: 'var(--zone-ext)', stroke: 'var(--line)' }, z);
+  el('text', { x: 980, y: 62, 'font-size': 12.5, 'font-weight': 600, fill: 'var(--muted)' }, z, 'Outside GCP: Internet');
+
+  const se = el('g', { opacity: 0.42 }, svg);
+  STATIC_EDGES.forEach(([a, b]) => {
+    el('path', { d: pathD(route(a, b), 1), fill: 'none', stroke: 'var(--line)', 'stroke-width': 1.2 }, se);
+  });
+  layerEdges = el('g', {}, svg);
+  layerNodes = el('g', {}, svg);
+  layerFx = el('g', {}, svg);
+  Object.entries(NODES).forEach(([id, n]) => {
+    const g = el('g', { id: 'n-' + id }, layerNodes);
+    el('rect', { x: n.x - NW / 2, y: n.y - NH / 2, width: NW, height: NH, rx: 9, fill: 'var(--panel)', stroke: 'var(--gray)', 'stroke-width': 0.9 }, g);
+    el('text', { x: n.x, y: n.y - 5, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 600, fill: 'var(--text)' }, g, n.name);
+    el('text', { x: n.x, y: n.y + 13, 'text-anchor': 'middle', 'font-size': 10.5, fill: 'var(--muted)' }, g, n.sub);
+  });
+}
+
+function drawUpTo(upTo) {
+  layerEdges.innerHTML = ''; layerFx.innerHTML = '';
+  const st = {};
+  for (let i = 0; i <= upTo; i++) {
+    const s = steps[i];
+    st[s.f] = st[s.f] || 'used'; st[s.t] = st[s.t] || 'used';
+    if (s.kind === 'deny') st[s.t] = 'deny';
+    if (s.f === s.t) continue;
+    const segs = route(s.f, s.t);
+    el('path', { d: pathD(segs, 1), fill: 'none', stroke: COLORS[s.kind], 'stroke-width': i === upTo ? 2.8 : 1.8, opacity: i === upTo ? 1 : 0.78, 'stroke-linecap': 'round' }, layerEdges);
+    const [ex, ey] = pointAt(segs, 1), g = segs[segs.length - 1];
+    const ang = Math.atan2(g[3] - g[1], g[2] - g[0]);
+    const bx = ex - Math.cos(ang) * (NW / 2 * Math.abs(Math.cos(ang)) + NH / 2 * Math.abs(Math.sin(ang)) + 2);
+    const by = ey - Math.sin(ang) * (NW / 2 * Math.abs(Math.cos(ang)) + NH / 2 * Math.abs(Math.sin(ang)) + 2);
+    const tip = (a, r) => `${bx - Math.cos(ang + a) * r} ${by - Math.sin(ang + a) * r}`;
+    el('path', { d: `M${tip(0.5, 9)} L${bx} ${by} L${tip(-0.5, 9)}`, fill: 'none', stroke: COLORS[s.kind], 'stroke-width': 2, 'stroke-linecap': 'round' }, layerEdges);
+  }
+  Object.keys(NODES).forEach(id => {
+    const r = document.querySelector(`#n-${id} rect`), s = st[id];
+    r.setAttribute('stroke', s === 'deny' ? 'var(--red)' : s ? 'var(--purple)' : 'var(--gray)');
+    r.setAttribute('stroke-width', s === 'deny' ? 2.5 : s ? 1.6 : 0.9);
+    document.querySelector(`#n-${id}`).setAttribute('opacity', Object.keys(st).length && !s ? 0.52 : 1);
+  });
+  for (let i = 0; i <= upTo; i++) {
+    const s = steps[i];
+    if (s.kind === 'deny') {
+      const n = NODES[s.t], g = el('g', {}, layerFx);
+      const w = Math.max(118, s.label.length * 6.5 + 16);
+      el('rect', { x: n.x - w / 2, y: n.y - NH / 2 - 25, width: w, height: 21, rx: 10.5, fill: 'var(--red)' }, g);
+      el('text', { x: n.x, y: n.y - NH / 2 - 11, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600, fill: '#fff' }, g, s.label);
+    }
+  }
+}
+
+const speed = () => parseFloat($('speed').value) || 1;
+function packet(i, done) {
+  const my = ++animTok, s = steps[i], dur = (s.f === s.t ? 850 : 1400) / speed(), t0 = performance.now();
+  const pk = el('g', {}, svg);
+  const w = Math.max(76, s.label.length * 6.4 + 20);
+  el('rect', { x: -w / 2, y: -12, width: w, height: 24, rx: 12, fill: COLORS[s.kind] }, pk);
+  el('text', { x: 0, y: 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600, fill: '#fff' }, pk, s.label);
+  const segs = s.f === s.t ? null : route(s.f, s.t);
+  function frame(now) {
+    if (my !== animTok) { pk.remove(); return; }
+    const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    drawUpTo(i - 1 < 0 ? -1 : i - 1);
+    if (segs) {
+      el('path', { d: pathD(segs, e), fill: 'none', stroke: COLORS[s.kind], 'stroke-width': 3.2, 'stroke-linecap': 'round' }, layerEdges);
+      const [x, y] = pointAt(segs, e);
+      pk.setAttribute('transform', `translate(${x},${y - 16})`);
+    } else {
+      const n = NODES[s.f];
+      pk.setAttribute('transform', `translate(${n.x},${n.y - NH / 2 - 16 - 10 * Math.sin(Math.PI * e)})`);
+    }
+    pk.setAttribute('opacity', k > .9 ? (1 - k) / .1 : 1);
+    if (k < 1) requestAnimationFrame(frame); else { pk.remove(); drawUpTo(i); done && done(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function show(i, anim) {
+  clearTimeout(dwell); animTok++;
+  if (i < 0) { cur = -1; drawUpTo(-1); return; }
+  cur = i; const s = steps[i];
+  $('stepNum').textContent = `Step ${i + 1} of ${steps.length}`;
+  $('stepTitle').textContent = s.title;
+  $('stepDetail').innerHTML = s.detail;
+  $('stepCarry').innerHTML = s.carry ? `<span class="carry" style="border-color:${COLORS[s.kind]};color:${COLORS[s.kind]}">${s.carry}</span>` : '';
+  $('stepNote').innerHTML = s.note ? `<div class="note">${s.note}</div>` : '';
+  $('progress').textContent = `Step ${i + 1} / ${steps.length}`;
+  Array.from($('log').children).forEach((li, j) => {
+    li.className = j === i ? 'cur' : (j < i ? 'done' : '');
+    if (steps[j].kind === 'deny' && j <= i) li.classList.add('deny');
+  });
+  const o = $('outcome');
+  if (i === steps.length - 1) { o.textContent = outcome[0]; o.className = 'pill ' + outcome[1]; }
+  else { o.textContent = 'Running...'; o.className = 'pill'; }
+  const after = () => { if (playing && cur < steps.length - 1) dwell = setTimeout(() => show(cur + 1, true), 1100 / speed()); else if (cur === steps.length - 1) { playing = false; setPlay(); } };
+  if (anim) packet(i, after); else { drawUpTo(i); after(); }
+}
+
+function setPlay() { $('play').textContent = playing ? 'Pause' : 'Play'; }
+function togglePlay() {
+  if (!steps.length && activePreset) return runScenario(activePreset);
+  if (!steps.length) return runScenario(SCENARIOS[0]);
+  playing = !playing; setPlay(); clearTimeout(dwell);
+  if (playing) { if (cur >= steps.length - 1) show(0, true); else show(cur + 1, true); }
+}
+function next() { playing = false; setPlay(); if (cur < steps.length - 1) show(cur + 1, true); }
+function prev() { playing = false; setPlay(); show(cur - 1, false); }
+function runCurrent() { runScenario(activePreset || SCENARIOS[0]); }
+
+function runScenario(sc) {
+  activePreset = sc;
+  Array.from($('presets').querySelectorAll('button')).forEach(b => b.classList.toggle('active', b.dataset.id === sc.id));
+  steps = sc.steps; outcome = sc.outcome;
+  $('scenarioText').textContent = outcome[2];
+  $('log').innerHTML = steps.map((s, j) => `<li onclick="playing=false;setPlay();show(${j},true)"><span class="n">${j + 1}</span><span>${s.title}</span></li>`).join('');
+  drawBase();
+  playing = true; setPlay();
+  show(0, true);
+}
+
+$('speed').addEventListener('input', e => $('speedv').textContent = e.target.value + 'x');
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowRight') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+SCENARIOS.forEach(sc => {
+  const b = document.createElement('button');
+  b.textContent = sc.name;
+  b.dataset.id = sc.id;
+  b.className = sc.group;
+  b.onclick = () => runScenario(sc);
+  $('presets').appendChild(b);
+});
+
+drawBase();
+runScenario(SCENARIOS[0]);
+</script>
+</body>
+</html>
