@@ -1,0 +1,10 @@
+addresses:
+- 10.10.0.40
+description: Self-managed SWP egress proxy for crm-agent-id in agent-lab-vpc
+gatewaySecurityPolicy: projects/geagent-sasfar-ooc/locations/us-central1/gatewaySecurityPolicies/crm-swp-policy
+network: projects/geagent-sasfar-ooc/global/networks/agent-lab-vpc
+ports:
+- 80
+scope: crm-swp-egress
+subnetwork: projects/geagent-sasfar-ooc/regions/us-central1/subnetworks/agent-lab-subnet
+type: SECURE_WEB_GATEWAY

@@ -1,0 +1,11 @@
+{
+  "description": "Self-managed Agent Gateway backed by Secure Web Proxy crm-swp-egress in agent-lab-vpc",
+  "selfManaged": {
+    "resourceUris": [
+      "projects/172882039333/locations/us-central1/gateways/crm-swp-egress"
+    ]
+  },
+  "registries": [
+    "//agentregistry.googleapis.com/projects/geagent-sasfar-ooc/locations/us-central1"
+  ]
+}
