@@ -1,0 +1,96 @@
+{
+  "tools": [
+    {
+      "name": "gh_list_issues",
+      "description": "List GitHub issues for a repository (uses live GitHub API if GITHUB_TOKEN is configured, otherwise returns mock issues).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "GitHub repo in owner/name format"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["open", "closed", "all"],
+            "description": "Issue state filter"
+          }
+        }
+      }
+    },
+    {
+      "name": "gh_get_pr",
+      "description": "Get details and summary for a GitHub Pull Request by number.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "GitHub repo in owner/name format"
+          },
+          "pr_number": {
+            "type": "integer",
+            "description": "Pull request number"
+          }
+        },
+        "required": ["pr_number"]
+      }
+    },
+    {
+      "name": "gh_create_issue",
+      "description": "Create a new GitHub issue in the repository.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "GitHub repo in owner/name format"
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title"
+          },
+          "body": {
+            "type": "string",
+            "description": "Issue body markdown"
+          }
+        },
+        "required": ["title"]
+      }
+    },
+    {
+      "name": "gh_get_poisoned_issue",
+      "description": "Test fixture: returns a GitHub issue containing a simulated prompt injection payload to test Model Armor egress inspection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue_id": {
+            "type": "integer",
+            "description": "Optional issue ID (default 666)"
+          }
+        }
+      }
+    },
+    {
+      "name": "gh_whoami",
+      "description": "Return the authenticated GitHub user profile using the per-request 3LO X-GitHub-Token header.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "gh_list_my_repos",
+      "description": "List repositories for the authenticated GitHub user using the per-request 3LO X-GitHub-Token header.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "per_page": {
+            "type": "integer",
+            "description": "Number of repos to return (default 10)"
+          }
+        }
+      }
+    }
+  ]
+}
